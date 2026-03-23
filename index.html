@@ -3493,11 +3493,27 @@ function renderCustomizeRadial() {
       slot.innerHTML = `<span class="slot-icon">${data.icon}</span>`;
     }
 
-    // Key hint on cursor-focused slot (keyboard/controller only, not mouse hover)
-    if (i === customizeSlotCursor && customizeFocusPanel === 'radial' && customizeHoverSlot < 0) {
+    // Slot number hints (1-8) — always visible for keyboard/mouse
+    if (lastInputDevice !== 'controller') {
+      const numHint = document.createElement('span');
+      numHint.className = 'slot-key-hint';
+      numHint.textContent = i + 1;
+      const hintAngle = (i / 8) * Math.PI * 2 - Math.PI / 2;
+      const hintR = 42;
+      numHint.style.left = (22 + Math.cos(hintAngle) * hintR - 8) + 'px';
+      numHint.style.top = (22 + Math.sin(hintAngle) * hintR - 8) + 'px';
+      // Focused slot: also show [F] below the number
+      if (i === customizeSlotCursor && customizeFocusPanel === 'radial' && customizeHoverSlot < 0) {
+        numHint.textContent = 'F';
+        numHint.style.background = 'rgba(60,120,255,0.5)';
+        numHint.style.borderColor = 'rgba(150,200,255,0.6)';
+      }
+      slot.appendChild(numHint);
+    } else if (i === customizeSlotCursor && customizeFocusPanel === 'radial') {
+      // Controller: show [A] on focused slot only
       const hint = document.createElement('span');
       hint.className = 'slot-key-hint';
-      hint.textContent = lastInputDevice === 'controller' ? 'A' : 'F';
+      hint.textContent = 'A';
       const hintAngle = (i / 8) * Math.PI * 2 - Math.PI / 2;
       const hintR = 42;
       hint.style.left = (22 + Math.cos(hintAngle) * hintR - 8) + 'px';
@@ -4071,6 +4087,17 @@ document.addEventListener('keydown', (e) => {
     }
 
     // Q is now category prev (below). ESC handles close.
+
+    // 1-8 — jump to slot directly
+    if (!searchFocused && e.code.startsWith('Digit')) {
+      const num = parseInt(e.code.replace('Digit', ''));
+      if (num >= 1 && num <= 8) {
+        e.preventDefault();
+        focusCustomizeSlot(num - 1);
+        selectCustomizeSlot();
+        return;
+      }
+    }
 
     // Tab — toggle panel focus
     if (e.code === 'Tab') {
