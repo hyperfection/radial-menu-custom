@@ -1486,9 +1486,9 @@ canvas { display: block; cursor: default; }
     <tr><td>A</td><td>F / 선택</td></tr>
     <tr><td>B</td><td>Q / 뒤로</td></tr>
     <tr><td>X</td><td>G / NPC</td></tr>
-    <tr><td>Y</td><td>C / 셀프</td></tr>
-    <tr><td>LB</td><td>래디얼 토글</td></tr>
-    <tr><td>RB</td><td>V / 타겟 전환</td></tr>
+    <tr><td>Y</td><td>래디얼 메뉴 토글</td></tr>
+    <tr><td>LB</td><td>V / 타겟 전환</td></tr>
+    <tr><td>L3</td><td>C / 셀프 상호작용</td></tr>
     <tr><td>Start</td><td>ESC / 메뉴</td></tr>
     <tr><td>D-pad</td><td>메뉴 탐색</td></tr>
     <tr><td>L3</td><td>검색 포커스</td></tr>
@@ -2307,9 +2307,9 @@ function updateControlGuide() {
       ${kbd('R-Stick')} 카메라<br>
       ${kbd('A')} 사물 상호작용<br>
       ${kbd('X')} NPC 상호작용<br>
-      ${kbd('RB')} 타겟 전환<br>
-      ${kbd('LB')} 래디얼 메뉴<br>
-      ${kbd('Y')} 셀프 상호작용<br>
+      ${kbd('LB')} 타겟 전환<br>
+      ${kbd('Y')} 래디얼 메뉴<br>
+      ${kbd('L3')} 셀프 상호작용<br>
       ${kbd('Start')} 메뉴
     `;
   } else {
@@ -4208,17 +4208,14 @@ function pollGamepad(dt) {
       openNPCMenu(state.nearNPC, 'keyboard');
     }
   }
-  // Y (3) = C / self-interact
+  // Y (3) = radial menu
   if (btnPressed(3)) {
-    if (!state.interactionMenuOpen) openSelfMenu('keyboard');
-  }
-  // LB (4) = radial menu
-  if (btnPressed(4)) {
     if (!state.radialOpen) openRadialMenu('controller');
     else closeRadialMenu();
   }
-  // RB (5) = V / cycle target
-  if (btnPressed(5)) cycleTarget();
+  // LB (4) = V / cycle target
+  if (btnPressed(4)) cycleTarget();
+  // RB (5) = unused
   // Start (9) = ESC / game menu
   if (btnPressed(9)) {
     document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));
@@ -4227,9 +4224,13 @@ function pollGamepad(dt) {
   if (btnPressed(12)) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp' }));
   if (btnPressed(13)) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown' }));
 
-  // L3 (10) = focus search in customize
-  if (btnPressed(10) && state.customizeOpen) {
-    document.getElementById('customize-search').focus();
+  // L3 (10) = self-interact / search focus in customize
+  if (btnPressed(10)) {
+    if (state.customizeOpen) {
+      document.getElementById('customize-search').focus();
+    } else if (!state.interactionMenuOpen) {
+      openSelfMenu('keyboard');
+    }
   }
 
   // Update prev state for remaining buttons
