@@ -1,0 +1,4267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Three.js Simulation Game Prototype</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #000; }
+canvas { display: block; cursor: default; }
+
+/* ═══════════════════ GAME HUD ═══════════════════ */
+#game-hud { transition: opacity 0.3s; }
+#game-hud.hidden { opacity: 0; pointer-events: none; }
+
+/* ─── Top-Left: Location & Info ─── */
+#hud-topleft {
+  position: fixed; top: 14px; left: 14px; z-index: 10; pointer-events: none;
+}
+#hud-location {
+  display: flex; align-items: center; gap: 6px; color: #fff; font-size: 13px;
+  margin-bottom: 4px; text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+#hud-location .loc-icon { font-size: 14px; }
+#hud-build-ver {
+  color: rgba(255,255,255,0.4); font-size: 10px; font-family: monospace;
+}
+
+/* ─── Top-Center: Toolbar ─── */
+#hud-toolbar {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 4px; z-index: 10;
+  background: rgba(30,30,40,0.7); border-radius: 12px; padding: 5px 8px;
+  backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.08);
+}
+.toolbar-btn {
+  width: 36px; height: 36px; border-radius: 8px; border: none;
+  background: transparent; color: #ccc; font-size: 17px;
+  cursor: pointer; transition: all 0.15s; display: flex;
+  align-items: center; justify-content: center;
+}
+.toolbar-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.toolbar-btn.active { background: rgba(100,140,255,0.3); color: #fff; }
+
+/* ─── Bottom-Left: Time & Speed ─── */
+#hud-bottomleft {
+  position: fixed; bottom: 14px; left: 14px; z-index: 10;
+  display: flex; flex-direction: column; gap: 6px;
+}
+#hud-datetime {
+  color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+#hud-day { font-size: 11px; color: rgba(255,255,255,0.6); font-weight: 600; letter-spacing: 1px; }
+#hud-time { font-size: 26px; font-weight: 700; line-height: 1; }
+#hud-weather {
+  display: flex; align-items: center; gap: 6px; color: rgba(255,255,255,0.7); font-size: 12px;
+}
+#hud-speed {
+  display: flex; gap: 3px; align-items: center;
+}
+.speed-btn {
+  width: 28px; height: 22px; border-radius: 5px; border: none;
+  background: rgba(255,255,255,0.08); color: #aaa; font-size: 11px;
+  cursor: pointer; transition: all 0.15s;
+}
+.speed-btn:hover { background: rgba(255,255,255,0.15); }
+.speed-btn.active { background: rgba(100,180,255,0.3); color: #fff; }
+
+/* ─── Bottom-Center: Character Status ─── */
+#hud-status-bar {
+  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: flex-end; gap: 10px; z-index: 10;
+}
+#hud-portrait {
+  width: 64px; height: 80px; border-radius: 12px;
+  background: rgba(30,30,40,0.8); border: 2px solid rgba(255,255,255,0.15);
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+  font-size: 32px; backdrop-filter: blur(4px);
+}
+#hud-needs {
+  display: flex; gap: 6px; padding: 6px 10px;
+  background: rgba(30,30,40,0.7); border-radius: 12px;
+  backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.06);
+}
+.need-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  width: 42px;
+}
+.need-icon { font-size: 18px; }
+.need-bar-bg {
+  width: 100%; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+.need-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+.need-label { font-size: 9px; color: rgba(255,255,255,0.5); }
+#hud-mood {
+  display: flex; gap: 4px; padding: 6px 8px;
+  background: rgba(30,30,40,0.7); border-radius: 12px;
+  backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.06);
+}
+.mood-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05); font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+}
+.mood-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.25); }
+
+/* ─── Bottom-Right: Currency & Shortcuts ─── */
+#hud-bottomright {
+  position: fixed; bottom: 14px; right: 14px; z-index: 10;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+}
+#hud-currency {
+  color: #fff; font-size: 18px; font-weight: 700;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  display: flex; align-items: center; gap: 6px;
+}
+#hud-currency .currency-icon { color: #f0c040; }
+#hud-shortcuts {
+  display: flex; gap: 4px;
+}
+.shortcut-btn {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: rgba(30,30,40,0.7); border: 1px solid rgba(255,255,255,0.08);
+  color: #aaa; font-size: 15px; cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.shortcut-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+/* ─── Right-Side: Quick Access ─── */
+#hud-right-icons {
+  position: fixed; right: 14px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 6px; z-index: 10;
+}
+.right-icon-btn {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: rgba(30,30,40,0.6); border: 1px solid rgba(255,255,255,0.06);
+  color: #bbb; font-size: 18px; cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.right-icon-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+/* ─── Quick-Slots (Bottom) ─── */
+#hud-quickslots {
+  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 4px; z-index: 9;
+  margin-bottom: 0;
+}
+
+/* ═══ Overlay Panels ═══ */
+/* Shared panel base */
+.game-panel {
+  position: fixed; display: none; z-index: 150;
+  background: rgba(20,22,35,0.97); border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(12px);
+  animation: panelIn 0.2s ease;
+}
+@keyframes panelIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.panel-header h2 { color: #fff; font-size: 17px; font-weight: 600; }
+.panel-close {
+  width: 28px; height: 28px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,0.08); color: #aaa; font-size: 16px;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+}
+.panel-close:hover { background: rgba(255,80,80,0.2); color: #ff8888; }
+.panel-body { padding: 14px 20px; }
+
+/* ─── Smartphone Panel ─── */
+#phone-panel {
+  top: 50%; right: 50px; transform: translateY(-50%);
+  width: 310px; height: 560px;
+  border-radius: 24px; overflow: hidden;
+}
+#phone-panel .phone-statusbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 16px; font-size: 10px; color: rgba(255,255,255,0.5);
+  background: rgba(0,0,0,0.2);
+}
+#phone-panel .phone-clock {
+  text-align: center; padding: 16px 0 12px; color: #fff;
+}
+#phone-panel .phone-clock .phone-time { font-size: 36px; font-weight: 700; }
+#phone-panel .phone-clock .phone-day { font-size: 12px; color: rgba(255,255,255,0.5); }
+#phone-panel .phone-weather {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 6px; padding: 0 20px 10px; font-size: 12px; color: rgba(255,255,255,0.6);
+}
+#phone-panel .phone-widgets {
+  display: flex; gap: 8px; padding: 0 16px 12px;
+}
+.phone-widget {
+  flex: 1; padding: 14px 12px; border-radius: 14px;
+  font-size: 12px; color: #fff;
+}
+.phone-widget.note { background: rgba(100,200,150,0.25); }
+.phone-widget.money { background: linear-gradient(135deg, rgba(255,100,80,0.3), rgba(255,150,100,0.2)); }
+.phone-widget .widget-label { font-size: 10px; opacity: 0.7; margin-bottom: 4px; }
+.phone-widget .widget-value { font-size: 15px; font-weight: 600; }
+#phone-apps {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  padding: 8px 16px; overflow-y: auto; max-height: 320px;
+}
+.phone-app {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer; transition: all 0.15s;
+}
+.phone-app:hover { transform: scale(1.1); }
+.phone-app-icon {
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+.phone-app-label { font-size: 10px; color: rgba(255,255,255,0.6); }
+
+/* ─── Bag Panel ─── */
+#bag-panel {
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 520px; max-height: 70vh;
+}
+.bag-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
+  padding-top: 6px;
+}
+.bag-slot {
+  aspect-ratio: 1; border-radius: 10px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; cursor: pointer; transition: all 0.15s;
+}
+.bag-slot:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); }
+.bag-slot.has-item { background: rgba(100,140,255,0.08); border-color: rgba(100,140,255,0.15); }
+.bag-tabs {
+  display: flex; gap: 4px; margin-bottom: 10px;
+}
+.bag-tab {
+  padding: 5px 14px; border-radius: 8px; font-size: 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+  color: #aaa; cursor: pointer; transition: all 0.15s;
+}
+.bag-tab:hover { background: rgba(255,255,255,0.08); }
+.bag-tab.active { background: rgba(100,140,255,0.2); color: #fff; border-color: rgba(100,140,255,0.3); }
+
+/* ─── Build Mode Panel ─── */
+#build-panel {
+  top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 0;
+  background: rgba(10,12,20,0.95);
+  backdrop-filter: blur(12px);
+  display: none; z-index: 500;
+  overflow-y: auto;
+}
+#build-panel .panel-header {
+  position: sticky; top: 0; z-index: 2;
+  background: rgba(10,12,20,0.98);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.build-categories {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.build-cat {
+  padding: 8px 18px; border-radius: 12px; font-size: 14px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+  color: #aaa; cursor: pointer; transition: all 0.15s;
+}
+.build-cat:hover { background: rgba(255,255,255,0.1); }
+.build-cat.active { background: rgba(255,180,60,0.2); color: #ffc040; border-color: rgba(255,180,60,0.3); }
+.build-grid {
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px;
+}
+.build-item {
+  aspect-ratio: 1; border-radius: 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; cursor: pointer; transition: all 0.15s; font-size: 11px; color: #aaa;
+}
+.build-item .build-icon { font-size: 26px; }
+.build-item:hover { background: rgba(255,180,60,0.12); border-color: rgba(255,180,60,0.2); color: #fff; }
+
+/* ─── Character Custom Panel (fullscreen) ─── */
+#charcustom-panel {
+  top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 0;
+  background: rgba(10,12,20,0.95);
+  backdrop-filter: blur(12px);
+  display: none; z-index: 500;
+  overflow-y: auto;
+}
+#charcustom-panel .panel-header {
+  position: sticky; top: 0; z-index: 2;
+  background: rgba(10,12,20,0.98);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.charcustom-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+}
+.charcustom-item {
+  aspect-ratio: 1; border-radius: 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; cursor: pointer; transition: all 0.15s; font-size: 12px; color: #aaa;
+}
+.charcustom-item .cc-icon { font-size: 30px; }
+.charcustom-item:hover { background: rgba(200,120,255,0.12); border-color: rgba(200,120,255,0.25); color: #fff; }
+
+/* ─── Photo Mode Panel (fullscreen) ─── */
+#photo-panel {
+  top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 0;
+  background: transparent;
+  display: none; z-index: 500;
+  pointer-events: none;
+}
+#photo-panel > * { pointer-events: auto; }
+#photo-frame {
+  position: absolute; top: 8%; left: 10%; width: 80%; height: 78%;
+  border: 3px solid rgba(255,255,255,0.8);
+  border-radius: 4px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);
+  pointer-events: none;
+}
+#photo-panel .photo-toolbar {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 10px; padding: 10px 20px;
+  background: rgba(20,20,30,0.9); border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+}
+#photo-panel .photo-btn {
+  width: 44px; height: 44px; border-radius: 10px; border: none;
+  background: rgba(255,255,255,0.06); color: #ccc; font-size: 20px;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+}
+#photo-panel .photo-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+#photo-panel .photo-hint {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,0.4); font-size: 13px;
+  background: rgba(0,0,0,0.5); padding: 6px 16px; border-radius: 10px;
+}
+
+/* ─── Game Menu (ESC) ─── */
+#game-menu {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 0; display: none; z-index: 500;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+  justify-content: center; align-items: center;
+}
+#game-menu.show { display: flex; }
+#game-menu-box {
+  background: rgba(25,25,40,0.98); border-radius: 20px; padding: 30px 36px;
+  border: 1px solid rgba(255,255,255,0.08); width: 340px; text-align: center;
+}
+#game-menu-box h2 { color: #fff; font-size: 20px; margin-bottom: 20px; }
+.gmenu-item {
+  padding: 12px 0; color: #ccc; font-size: 15px;
+  cursor: pointer; transition: all 0.15s; border-radius: 10px; margin: 4px 0;
+}
+.gmenu-item:hover { background: rgba(100,140,255,0.15); color: #fff; }
+.gmenu-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 8px 0; }
+
+/* ─── Control Guide (left center) ─── */
+#control-guide {
+  position: fixed; left: 14px; top: 50%; transform: translateY(-50%);
+  z-index: 10; pointer-events: none;
+  color: rgba(255,255,255,0.6); font-size: 22px; line-height: 2.2;
+}
+#control-guide kbd {
+  display: inline-block; min-width: 28px; text-align: center;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 5px; padding: 2px 8px; font-size: 18px; font-family: inherit;
+  color: rgba(255,255,255,0.85); margin-right: 6px; font-weight: 600;
+}
+
+/* Old key-hints HUD (replaced) */
+#hud { display: none; }
+
+/* ─── Targeting UI ─── */
+
+/* Primary target: F key icon floating */
+.target-primary {
+  position: fixed; pointer-events: none; z-index: 42;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  transform: translate(-50%, -100%);
+  animation: floatBob 1.5s ease-in-out infinite;
+}
+.target-primary .key-badge {
+  background: rgba(0,0,0,0.8); border: 2px solid rgba(255,255,255,0.8);
+  border-radius: 8px; padding: 4px 10px; font-size: 14px; font-weight: bold;
+  color: #fff; min-width: 32px; text-align: center;
+  box-shadow: 0 2px 10px rgba(100,140,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.3);
+}
+.target-primary .key-label {
+  color: #fff; font-size: 11px; text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  white-space: nowrap;
+}
+@keyframes floatBob {
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: -6px; }
+}
+
+/* Secondary targets: circle ring */
+.target-secondary {
+  position: fixed; pointer-events: none; z-index: 41;
+  transform: translate(-50%, -50%);
+}
+.target-secondary .ring {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.6);
+  animation: glimmer 1.2s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(255,255,255,0.3);
+}
+.target-secondary .sec-label {
+  position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%);
+  font-size: 8px; color: rgba(255,255,255,0.5); white-space: nowrap;
+}
+@keyframes glimmer {
+  0%, 100% { border-color: rgba(255,255,255,0.4); box-shadow: 0 0 6px rgba(255,255,255,0.15); }
+  50% { border-color: rgba(255,255,255,0.9); box-shadow: 0 0 16px rgba(255,255,255,0.35); }
+}
+
+/* Dev mode info */
+/* ─── In-game Tooltip ─── */
+#game-tooltip {
+  position: fixed; z-index: 9999; pointer-events: none;
+  background: rgba(15,15,25,0.95); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px; padding: 6px 12px;
+  color: #fff; font-size: 13px; font-weight: 500;
+  white-space: nowrap; display: none;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+#game-tooltip kbd {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 3px; padding: 1px 5px; font-size: 11px; font-family: inherit;
+  color: rgba(255,255,255,0.7); margin-left: 6px;
+}
+
+/* ─── Guide Button & Panel ─── */
+#guide-btn {
+  position: fixed; top: 14px; right: 14px; z-index: 12;
+  background: rgba(30,30,40,0.7); border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.6); font-size: 13px; padding: 6px 14px;
+  border-radius: 20px; cursor: pointer; backdrop-filter: blur(4px);
+  transition: all 0.15s;
+}
+#guide-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+#guide-panel {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(10,12,20,0.97); z-index: 600; display: none;
+  overflow-y: auto; padding: 40px 60px;
+  backdrop-filter: blur(8px);
+}
+#guide-panel.show { display: block; }
+#guide-panel .guide-close {
+  position: fixed; top: 20px; right: 30px;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+  color: #aaa; font-size: 16px; width: 36px; height: 36px; border-radius: 50%;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  z-index: 601;
+}
+#guide-panel .guide-close:hover { background: rgba(255,80,80,0.2); color: #ff8888; }
+#guide-panel h1 { color: #fff; font-size: 24px; margin-bottom: 8px; }
+#guide-panel h2 {
+  color: #8ab4ff; font-size: 17px; margin-top: 30px; margin-bottom: 10px;
+  padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+#guide-panel h3 { color: #ccc; font-size: 14px; margin-top: 16px; margin-bottom: 6px; }
+#guide-panel p, #guide-panel li { color: rgba(255,255,255,0.6); font-size: 13px; line-height: 1.8; }
+#guide-panel ul { padding-left: 20px; }
+#guide-panel table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+#guide-panel th {
+  text-align: left; color: rgba(255,255,255,0.5); font-size: 11px;
+  padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+}
+#guide-panel td {
+  color: rgba(255,255,255,0.65); font-size: 13px; padding: 6px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+#guide-panel kbd {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px; padding: 1px 6px; font-size: 12px; font-family: inherit;
+  color: rgba(255,255,255,0.7);
+}
+#guide-panel .state-diagram {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px; padding: 16px 20px; font-family: monospace;
+  font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.6;
+  white-space: pre; overflow-x: auto; margin: 10px 0;
+}
+
+/* ─── Target List Panel (right side) ─── */
+#target-list-panel {
+  position: fixed; right: 14px; top: 50%; transform: translateY(-50%);
+  z-index: 12; pointer-events: none;
+  display: flex; flex-direction: column; gap: 3px;
+  max-height: 50vh; overflow: visible;
+}
+.target-list-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px 8px 12px; border-radius: 10px;
+  background: rgba(0,0,0,0.35); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.45); font-size: 22px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.target-list-item.active {
+  background: rgba(80,140,255,0.2);
+  border-color: rgba(100,160,255,0.4);
+  color: #fff;
+}
+.target-list-item .tl-key {
+  font-size: 16px; font-weight: bold;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px; padding: 2px 8px; min-width: 28px; text-align: center;
+}
+.target-list-item.active .tl-key {
+  background: rgba(100,160,255,0.3); border-color: rgba(100,160,255,0.5);
+}
+.target-list-item .tl-icon { font-size: 14px; }
+.target-list-item .tl-name { flex: 1; }
+.target-list-item .tl-v-indicator {
+  position: absolute; left: -44px; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: column; align-items: center;
+  font-size: 14px; color: #fff; line-height: 1; gap: 2px;
+}
+
+/* NPC item in target list */
+.target-list-item.npc-item {
+  border-left: 2px solid rgba(100,220,100,0.4);
+}
+.target-list-item.npc-item.active {
+  border-left-color: rgba(100,220,100,0.8);
+}
+
+#dev-overlay {
+  position: fixed; top: 60px; left: 14px; z-index: 15;
+  color: #0f0; font-size: 11px; font-family: monospace;
+  background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 6px;
+  display: none; pointer-events: none; line-height: 1.5;
+  border: 1px solid rgba(0,255,0,0.2);
+}
+#dev-overlay.show { display: block; }
+
+/* Interaction menu — vertical pill list overlay */
+#interaction-menu {
+  position: fixed; top: 50%; right: 320px; transform: translateY(-50%);
+  display: none; z-index: 100; width: 300px;
+}
+/* Depth-2 submenu panel (appears to the right of depth-1) */
+#interact-depth2 {
+  position: fixed; top: 50%; right: 10px; transform: translateY(-50%);
+  display: none; z-index: 101; width: 300px;
+}
+#interact-depth2 .d2-header {
+  color: rgba(255,255,255,0.5); font-size: 12px; margin-bottom: 8px;
+  padding-left: 4px; letter-spacing: 0.5px;
+}
+#interact-depth2 .d2-items { display: flex; flex-direction: column; gap: 8px; }
+#interact-depth2 .menu-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-radius: 28px;
+  background: rgba(120,110,90,0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff; font-size: 15px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+  user-select: none;
+}
+#interact-depth2 .menu-item:hover,
+#interact-depth2 .menu-item.focused {
+  background: rgba(140,130,105,0.7);
+  transform: translateX(-4px);
+}
+#interact-depth2 .menu-item.focused {
+  outline: 2px solid rgba(255,255,255,0.35);
+  outline-offset: -2px;
+  position: relative;
+}
+#interact-depth2 .menu-item.focused::before {
+  content: attr(data-key);
+  position: absolute; left: -38px; top: 50%; transform: translateY(-50%);
+  background: rgba(0,0,0,0.7); border: 1.5px solid rgba(255,255,255,0.5);
+  border-radius: 5px; padding: 2px 7px; font-size: 11px; font-weight: bold;
+  color: #fff; white-space: nowrap;
+}
+#interact-depth2 .menu-item:active {
+  transform: scale(0.98);
+}
+#interact-depth2 .menu-item.disabled {
+  opacity: 0.35; pointer-events: none;
+}
+#interact-depth2 .menu-item .item-left {
+  display: flex; align-items: center; gap: 10px;
+}
+#interact-depth2 .menu-item .item-icon {
+  font-size: 18px; width: 24px; text-align: center;
+}
+#interact-depth2 .menu-item .chevron {
+  font-size: 18px; opacity: 0.6; font-weight: bold;
+}
+/* Depth-1 dimmed state when depth-2 is open */
+#interaction-menu.depth2-open .menu-item {
+  opacity: 0.4;
+}
+#interaction-menu.depth2-open .menu-item.depth1-selected {
+  opacity: 0.8;
+  background: rgba(120,115,95,0.5);
+  transform: none;
+  outline: none;
+}
+/* Hide the F key preview on depth1-selected */
+#interaction-menu.depth2-open .menu-item.depth1-selected::before {
+  display: none;
+}
+#interact-close-hint {
+  display: flex; align-items: center; gap: 6px;
+  color: rgba(255,255,255,0.4); font-size: 12px;
+  margin-bottom: 10px; padding-left: 4px;
+}
+#interact-header {
+  margin-bottom: 14px; padding-left: 8px;
+}
+#interact-subtitle {
+  color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500;
+  margin-bottom: 2px; letter-spacing: 0.5px;
+}
+#interact-title {
+  color: #fff; font-size: 24px; font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+#interact-items {
+  display: flex; flex-direction: column; gap: 8px;
+}
+#interaction-menu .menu-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-radius: 28px;
+  background: rgba(120,110,90,0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #fff; font-size: 15px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s;
+  user-select: none;
+}
+#interaction-menu .menu-item:hover,
+#interaction-menu .menu-item.focused {
+  background: rgba(140,130,105,0.7);
+  transform: translateX(-4px);
+}
+#interaction-menu .menu-item.focused {
+  outline: 2px solid rgba(255,255,255,0.35);
+  outline-offset: -2px;
+  position: relative;
+}
+#interaction-menu .menu-item.focused::before {
+  content: attr(data-key);
+  position: absolute; left: -38px; top: 50%; transform: translateY(-50%);
+  background: rgba(0,0,0,0.7); border: 1.5px solid rgba(255,255,255,0.5);
+  border-radius: 5px; padding: 2px 7px; font-size: 11px; font-weight: bold;
+  color: #fff; white-space: nowrap;
+}
+#interaction-menu .menu-item:active {
+  transform: scale(0.98);
+}
+#interaction-menu .menu-item.disabled {
+  opacity: 0.35; pointer-events: none;
+}
+#interaction-menu .menu-item .item-left {
+  display: flex; align-items: center; gap: 10px;
+}
+#interaction-menu .menu-item .item-icon {
+  font-size: 18px; width: 24px; text-align: center;
+}
+#interaction-menu .menu-item .chevron {
+  font-size: 18px; opacity: 0.6; font-weight: bold;
+}
+
+/* ═══ Radial Menu — Glass Ring Style ═══ */
+#radial-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  display: none; z-index: 200;
+}
+#radial-menu {
+  position: absolute; top: 50%; left: 50%;
+  width: 560px; height: 560px;
+  margin-left: -280px; margin-top: -280px;
+}
+
+/* Outer glass ring */
+#radial-ring-outer {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 50%, rgba(60,60,70,0.55) 51%, rgba(50,50,60,0.5) 100%);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  box-shadow: 0 0 50px rgba(0,0,0,0.5), inset 0 0 30px rgba(0,0,0,0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Inner circle (transparent hole) */
+#radial-ring-inner {
+  position: absolute; top: 50%; left: 50%;
+  width: 50%; height: 50%;
+  margin-left: -25%; margin-top: -25%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.15);
+  pointer-events: none;
+}
+
+/* Center content (title + hint) */
+#radial-center {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center; color: #fff; z-index: 2;
+  pointer-events: none; width: 180px;
+}
+#radial-center-title {
+  font-size: 16px; font-weight: 600;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+  margin-bottom: 2px;
+}
+#radial-center-desc {
+  font-size: 11px; color: rgba(255,255,255,0.45);
+  line-height: 1.3;
+}
+#radial-center-hint {
+  margin-top: 10px; font-size: 20px;
+  color: rgba(255,255,255,0.3);
+}
+
+/* Slot icons on the ring */
+.radial-slot {
+  position: absolute; width: 44px; height: 44px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.25s ease;
+  background: transparent; border: none;
+  color: rgba(255,255,255,0.7); font-size: 22px;
+  user-select: none; z-index: 3;
+}
+.radial-slot:hover,
+.radial-slot.focused {
+  color: #fff;
+  transform: scale(1.2);
+}
+.radial-slot .slot-icon { font-size: 22px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5)); }
+.radial-slot .slot-num { display: none; }
+
+/* Focused sector highlight (arc wedge) */
+.radial-sector {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 4; /* above slots so SVG paths catch all hover/click */
+}
+.radial-sector svg { width: 100%; height: 100%; }
+
+/* Empty slot */
+.radial-slot.empty { opacity: 0.25; }
+
+/* Slots are icons only, pointer-events pass through to sector SVG */
+.radial-slot { pointer-events: none; }
+.slot-key-hint {
+  position: absolute; font-size: 9px; font-weight: bold;
+  background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 4px; padding: 1px 5px; color: rgba(255,255,255,0.7);
+  white-space: nowrap; pointer-events: none;
+}
+.radial-slot.focused .slot-key-hint {
+  background: rgba(60,120,255,0.5); border-color: rgba(150,200,255,0.6);
+  color: #fff;
+}
+.radial-slot.empty .slot-icon { font-size: 18px; }
+
+/* Hint bar */
+#radial-hint {
+  position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,0.45); font-size: 12px;
+  background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: 12px;
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; gap: 6px;
+}
+#radial-hint kbd {
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px; padding: 1px 5px; font-size: 11px; font-family: inherit;
+}
+.radial-hint-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  cursor: pointer; padding: 3px 8px; border-radius: 6px;
+  transition: all 0.15s; border: none; background: transparent;
+  color: rgba(255,255,255,0.45); font-size: 12px; font-family: inherit;
+}
+.radial-hint-btn:hover {
+  background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8);
+}
+.radial-hint-sep { color: rgba(255,255,255,0.2); }
+
+/* Radial Customize Mode — dim + center radial + right list panel */
+#customize-panel {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  display: none; z-index: 300; background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+}
+
+/* Center radial in customize mode — same glass ring as main radial */
+#customize-radial {
+  position: absolute; top: 50%; left: 50%;
+  width: 560px; height: 560px;
+  margin-left: -280px; margin-top: -280px;
+}
+#customize-radial .customize-ring-outer {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 50%, rgba(60,60,70,0.55) 51%, rgba(50,50,60,0.5) 100%);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  box-shadow: 0 0 50px rgba(0,0,0,0.5), inset 0 0 30px rgba(0,0,0,0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#customize-radial .customize-ring-inner {
+  position: absolute; top: 50%; left: 50%;
+  width: 50%; height: 50%;
+  margin-left: -25%; margin-top: -25%;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.15);
+  pointer-events: none;
+}
+#customize-radial .radial-slot {
+  position: absolute; width: 44px; height: 44px;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; cursor: pointer; transition: all 0.25s ease;
+  background: transparent; border: none;
+  color: rgba(255,255,255,0.7); font-size: 22px; text-align: center;
+  user-select: none; z-index: 3;
+}
+#customize-radial .radial-slot:hover,
+#customize-radial .radial-slot.selected {
+  color: #fff;
+  transform: scale(1.2);
+}
+#customize-radial .radial-slot.selected {
+  outline: 2px solid rgba(100,140,255,0.9);
+  outline-offset: 4px;
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(100,140,255,0.4);
+}
+#customize-radial .radial-slot.empty {
+  opacity: 0.25;
+}
+#customize-radial .radial-slot .slot-icon { font-size: 22px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5)); }
+#customize-radial .radial-slot .slot-num {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  font-size: 9px; opacity: 0.6; font-weight: bold;
+}
+#customize-radial-center {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center; color: #fff; z-index: 2;
+  pointer-events: none; width: 180px;
+}
+#customize-radial-center .cust-title {
+  font-size: 16px; font-weight: 600;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.6);
+  margin-bottom: 2px;
+}
+#customize-radial-center .cust-desc {
+  font-size: 11px; color: rgba(255,255,255,0.45);
+  line-height: 1.3;
+}
+
+/* Right-side list panel */
+#customize-list-panel {
+  position: absolute; top: 50%; right: 24px;
+  transform: translateY(-50%);
+  width: 320px; max-height: 80vh;
+  background: rgba(20,22,35,0.97); border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+#customize-list-header {
+  padding: 16px 18px 0;
+}
+#customize-list-header h3 {
+  color: #fff; font-size: 16px; margin-bottom: 10px;
+}
+.search-input {
+  width: 100%; padding: 8px 14px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.06);
+  color: #fff; font-size: 13px; outline: none;
+}
+.search-input::placeholder { color: #666; }
+.search-input:focus { border-color: rgba(100,140,255,0.4); }
+
+/* Category filter chips */
+.category-bar {
+  display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.category-chip {
+  padding: 5px 12px; border-radius: 16px; font-size: 11px;
+  cursor: pointer; transition: all 0.15s; user-select: none;
+  border: 1px solid rgba(255,255,255,0.1); color: #aaa;
+  background: rgba(255,255,255,0.04);
+}
+.category-chip:hover { background: rgba(100,140,255,0.15); color: #fff; }
+.category-chip.active {
+  background: rgba(80,120,255,0.3); color: #fff;
+  border-color: rgba(100,140,255,0.5);
+}
+
+/* Action list items */
+#customize-action-list {
+  height: 420px; overflow-y: auto; padding: 8px 10px;
+}
+#customize-list-footer {
+  padding: 10px 14px; border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; gap: 8px;
+}
+#customize-list-footer button {
+  flex: 1; padding: 8px 0; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05);
+  color: #aaa; font-size: 12px; cursor: pointer; transition: all 0.15s;
+}
+#customize-list-footer button:hover {
+  background: rgba(255,80,80,0.2); color: #ff8888;
+  border-color: rgba(255,80,80,0.3);
+}
+
+/* Confirm dialog */
+#customize-confirm {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6); display: none; z-index: 400;
+  backdrop-filter: blur(4px);
+}
+#confirm-box {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: rgba(25,25,40,0.98); border-radius: 16px; padding: 24px 28px;
+  border: 1px solid rgba(255,255,255,0.1); text-align: center;
+  min-width: 320px;
+}
+#confirm-box p {
+  color: #ddd; font-size: 14px; margin-bottom: 18px; line-height: 1.5;
+}
+#confirm-box .confirm-buttons {
+  display: flex; gap: 10px; justify-content: center;
+}
+#confirm-box button {
+  padding: 9px 28px; border-radius: 10px; font-size: 13px;
+  cursor: pointer; transition: all 0.15s; border: 1px solid transparent;
+}
+#confirm-box .btn-discard {
+  background: rgba(255,80,80,0.25); color: #ff9999;
+  border-color: rgba(255,80,80,0.3);
+}
+#confirm-box .btn-discard:hover { background: rgba(255,80,80,0.4); }
+#confirm-box .btn-cancel {
+  background: rgba(100,140,255,0.2); color: #aaccff;
+  border-color: rgba(100,140,255,0.3);
+}
+#confirm-box .btn-cancel:hover { background: rgba(100,140,255,0.35); }
+
+/* Enter long-press progress */
+#longpress-bar {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  width: 200px; height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,0.1); display: none; z-index: 310;
+  overflow: hidden;
+}
+#longpress-fill {
+  height: 100%; width: 0%; border-radius: 3px;
+  background: linear-gradient(90deg, rgba(80,180,80,0.8), rgba(100,220,100,0.9));
+  transition: width 0.05s linear;
+}
+#longpress-label {
+  position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%);
+  color: #aaa; font-size: 11px; display: none; z-index: 310;
+}
+.action-list-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; margin: 2px 0; border-radius: 10px;
+  cursor: pointer; transition: all 0.15s; color: #ccc; font-size: 13px;
+  border: 1px solid transparent;
+}
+.action-list-item:hover {
+  background: rgba(100,140,255,0.15); color: #fff;
+}
+.action-list-item.selected {
+  background: rgba(80,120,255,0.25); color: #fff;
+  border-color: rgba(100,140,255,0.4);
+}
+.action-list-item .action-icon { font-size: 20px; }
+.action-list-item .action-label { flex: 1; }
+.action-list-item .action-cat {
+  font-size: 10px; color: #888; background: rgba(255,255,255,0.06);
+  padding: 2px 8px; border-radius: 8px;
+}
+
+/* Customize hint bar */
+#customize-hint {
+  position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+  color: #bbb; font-size: 13px; background: rgba(0,0,0,0.6);
+  padding: 8px 20px; border-radius: 12px; z-index: 310;
+  display: none;
+}
+#customize-hint kbd {
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 4px; padding: 1px 6px; font-size: 12px; font-family: inherit;
+}
+
+/* Sub-menu when clicking radial slot */
+#submenu-panel {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: rgba(20,22,35,0.97); border-radius: 16px; padding: 20px;
+  display: none; z-index: 250; min-width: 260px; max-width: 340px;
+  border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+}
+#submenu-panel h3 { color: #fff; margin-bottom: 12px; font-size: 15px; }
+#submenu-panel .submenu-item {
+  color: #ccc; padding: 9px 14px; margin: 3px 0; border-radius: 8px;
+  cursor: pointer; transition: all 0.15s; font-size: 13px;
+}
+#submenu-panel .submenu-item:hover {
+  background: rgba(100,140,255,0.25); color: #fff;
+}
+
+/* Emoji bubble */
+.emoji-bubble {
+  position: fixed; font-size: 36px; pointer-events: none;
+  z-index: 50; transition: opacity 0.5s; text-align: center;
+}
+
+/* Action toast */
+#action-toast {
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: rgba(40,160,80,0.9); color: #fff; padding: 10px 24px;
+  border-radius: 12px; font-size: 14px; display: none; z-index: 500;
+  transition: opacity 0.3s;
+}
+
+/* NPC alert icon */
+.npc-alert {
+  position: fixed; font-size: 28px; font-weight: bold; color: #ffcc00;
+  pointer-events: none; z-index: 50; text-shadow: 0 0 10px rgba(255,200,0,0.6);
+  animation: alertBounce 0.5s ease infinite alternate;
+}
+@keyframes alertBounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
+}
+</style>
+</head>
+<body>
+
+<div id="hud"></div>
+
+<!-- ═══ GAME HUD ═══ -->
+<div id="game-hud">
+
+  <!-- Top-Left: Location -->
+  <div id="hud-topleft">
+    <div id="hud-location">
+      <span class="loc-icon">📍</span>
+      <span id="loc-name">도원 마을</span>
+    </div>
+    <div id="hud-build-ver">PROTOTYPE.v0.1</div>
+  </div>
+
+  <!-- Top-Center: Toolbar -->
+  <div id="hud-toolbar">
+    <button class="toolbar-btn" data-tooltip="포토모드" id="tb-photo" onclick="togglePanel('photo')">📷</button>
+    <button class="toolbar-btn" data-tooltip="전체 메뉴<kbd>ESC</kbd>" id="tb-menu">☰</button>
+  </div>
+
+  <!-- Bottom-Left: Time & Weather -->
+  <div id="hud-bottomleft">
+    <div id="hud-datetime">
+      <div id="hud-day">MON</div>
+      <div id="hud-time">6:25 PM</div>
+    </div>
+    <div id="hud-weather">
+      <span>🌙</span> <span>24°C</span> <span style="opacity:0.5">여름</span>
+    </div>
+    <div id="hud-speed">
+      <button class="speed-btn" data-speed="0">⏸</button>
+      <button class="speed-btn active" data-speed="1">▶</button>
+      <button class="speed-btn" data-speed="2">▶▶</button>
+      <button class="speed-btn" data-speed="3">▶▶▶</button>
+    </div>
+  </div>
+
+  <!-- Bottom-Center: Character needs & mood -->
+  <div id="hud-status-bar">
+    <div id="hud-mood">
+      <button class="mood-btn" data-tooltip="가방<kbd>B</kbd>" onclick="togglePanel('bag')">🎒</button>
+      <button class="mood-btn" data-tooltip="스마트폰<kbd>P</kbd>" onclick="togglePanel('phone')">📱</button>
+    </div>
+    <div id="hud-portrait">🧑</div>
+    <div id="hud-needs">
+      <div class="need-item">
+        <span class="need-icon">🍔</span>
+        <div class="need-bar-bg"><div class="need-bar-fill" style="width:75%;background:#66cc66"></div></div>
+        <span class="need-label">배고픔</span>
+      </div>
+      <div class="need-item">
+        <span class="need-icon">🚿</span>
+        <div class="need-bar-bg"><div class="need-bar-fill" style="width:90%;background:#66aaff"></div></div>
+        <span class="need-label">청결</span>
+      </div>
+      <div class="need-item">
+        <span class="need-icon">💤</span>
+        <div class="need-bar-bg"><div class="need-bar-fill" style="width:60%;background:#aa88ff"></div></div>
+        <span class="need-label">수면</span>
+      </div>
+      <div class="need-item">
+        <span class="need-icon">🚽</span>
+        <div class="need-bar-bg"><div class="need-bar-fill" style="width:80%;background:#ffaa44"></div></div>
+        <span class="need-label">용변</span>
+      </div>
+      <div class="need-item">
+        <span class="need-icon">😊</span>
+        <div class="need-bar-bg"><div class="need-bar-fill" style="width:85%;background:#ff88aa"></div></div>
+        <span class="need-label">기분</span>
+      </div>
+      <div class="need-item">
+        <span class="need-icon">💪</span>
+        <div class="need-bar-bg"><div class="need-bar-fill" style="width:70%;background:#88ddaa"></div></div>
+        <span class="need-label">활력</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom-Right: Currency & shortcuts -->
+  <div id="hud-bottomright">
+    <div id="hud-currency">
+      <span class="currency-icon">Ⓜ</span> <span id="currency-val">26,986</span>
+    </div>
+    <div id="hud-shortcuts">
+      <button class="shortcut-btn" data-tooltip="건축모드<kbd>I</kbd>" id="sc-build">🏗️</button>
+      <button class="shortcut-btn" data-tooltip="캐릭터 커스텀" id="sc-charcustom" onclick="togglePanel('charcustom')">👤</button>
+    </div>
+  </div>
+
+  <!-- Left-Center: Control Guide -->
+  <div id="control-guide">
+    <kbd>WASD</kbd> 이동<br>
+    <kbd>↑↓←→</kbd> 카메라<br>
+    <kbd>F</kbd> 사물 상호작용<br>
+    <kbd>G</kbd> NPC 상호작용<br>
+    <kbd>V</kbd> 타겟 전환<br>
+    <kbd>'</kbd> 래디얼 메뉴<br>
+    <kbd>C</kbd> 셀프 상호작용<br>
+    <kbd>U</kbd> HUD 숨기기<br>
+    <kbd>ESC</kbd> 메뉴
+  </div>
+
+  <!-- Right-Side: Quick icons -->
+  <button id="guide-btn" onclick="toggleGuide()">❓ 가이드</button>
+
+  <div id="hud-right-icons">
+    <button class="right-icon-btn" title="홈" onclick="showToast('시뮬레이션과 관련없는 기능입니다')">🏠</button>
+    <button class="right-icon-btn" title="채팅" onclick="showToast('시뮬레이션과 관련없는 기능입니다')">💬</button>
+  </div>
+
+</div><!-- /game-hud -->
+
+<!-- ═══ OVERLAY PANELS ═══ -->
+
+<!-- Smartphone -->
+<div id="phone-panel" class="game-panel">
+  <div class="phone-statusbar">
+    <span>SITCOM</span>
+    <span id="phone-statustime">PM 06:25</span>
+    <span>89%</span>
+  </div>
+  <button class="panel-close" style="position:absolute;top:8px;right:8px;z-index:2" onclick="togglePanel('phone')">✕</button>
+  <div class="phone-clock">
+    <div class="phone-day">MON</div>
+    <div class="phone-time">6:25 PM</div>
+  </div>
+  <div class="phone-weather" style="justify-content:flex-end">
+    <span>24°C</span> <span>🌙</span> <span style="opacity:0.5">여름</span>
+  </div>
+  <div class="phone-widgets">
+    <div class="phone-widget note">
+      <div class="widget-label">📝 나의 노트</div>
+      <div class="widget-value">나의 꿈은...</div>
+    </div>
+    <div class="phone-widget money">
+      <div class="widget-label">💰 공과금</div>
+      <div class="widget-value">Ⓜ 0</div>
+    </div>
+  </div>
+  <div id="phone-apps"></div>
+</div>
+
+<!-- Bag / Inventory -->
+<div id="bag-panel" class="game-panel">
+  <div class="panel-header">
+    <h2>🎒 가방</h2>
+    <button class="panel-close" onclick="togglePanel('bag')">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="bag-tabs" id="bag-tabs"></div>
+    <div class="bag-grid" id="bag-grid"></div>
+  </div>
+</div>
+
+<!-- Build Mode -->
+<div id="build-panel" class="game-panel">
+  <div class="panel-header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="togglePanel('build')" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#ccc;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;">← 뒤로</button>
+      <h2>🏗️ 건축 모드</h2>
+    </div>
+    <button class="panel-close" onclick="togglePanel('build')">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="build-categories" id="build-cats"></div>
+    <div class="build-grid" id="build-grid"></div>
+  </div>
+</div>
+
+<!-- Character Custom Mode -->
+<div id="charcustom-panel" class="game-panel">
+  <div class="panel-header">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button onclick="togglePanel('charcustom')" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);color:#ccc;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;">← 뒤로</button>
+      <h2>👤 캐릭터 커스텀</h2>
+    </div>
+    <button class="panel-close" onclick="togglePanel('charcustom')">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="build-categories" id="cc-cats"></div>
+    <div class="charcustom-grid" id="cc-grid"></div>
+  </div>
+</div>
+
+<!-- Photo Mode -->
+<div id="photo-panel" class="game-panel">
+  <div id="photo-frame"></div>
+  <div style="position:fixed;top:16px;left:16px;display:flex;align-items:center;gap:10px;z-index:501;">
+    <button onclick="togglePanel('photo')" style="
+      background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);
+      color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;
+      backdrop-filter:blur(4px);pointer-events:auto;
+    ">← 뒤로가기</button>
+    <span style="color:rgba(255,255,255,0.6);font-size:14px;font-weight:600;">포토모드</span>
+  </div>
+  <div class="photo-toolbar">
+    <button class="photo-btn" title="셔터">📸</button>
+    <button class="photo-btn" title="필터">🎨</button>
+    <button class="photo-btn" title="프레임">🖼️</button>
+    <button class="photo-btn" title="줌">🔍</button>
+    <button class="photo-btn" title="회전">🔄</button>
+    <button class="photo-btn" title="스티커">⭐</button>
+  </div>
+</div>
+
+<!-- Game Menu (ESC) -->
+<div id="game-menu">
+  <div id="game-menu-box">
+    <h2>⏸ 게임 메뉴</h2>
+    <div class="gmenu-item" onclick="togglePanel('menu')">▶ 계속하기</div>
+    <div class="gmenu-item">💾 저장하기</div>
+    <div class="gmenu-item">📂 불러오기</div>
+    <div class="gmenu-divider"></div>
+    <div class="gmenu-item">⚙️ 설정</div>
+    <div class="gmenu-item">❓ 도움말</div>
+    <div class="gmenu-divider"></div>
+    <div class="gmenu-item" style="color:#f88">🚪 타이틀로 돌아가기</div>
+  </div>
+</div>
+
+<div id="interaction-menu">
+  <div id="interact-close-hint">
+    <span style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:4px;padding:1px 7px;font-size:11px;font-weight:bold;">Q</span>
+    <span>닫기</span>
+  </div>
+  <div id="interact-header">
+    <div id="interact-subtitle"></div>
+    <div id="interact-title"></div>
+  </div>
+  <div id="interact-items"></div>
+</div>
+
+<div id="interact-depth2">
+  <div class="d2-header" id="d2-header"></div>
+  <div class="d2-items" id="d2-items"></div>
+</div>
+
+<div id="radial-overlay">
+  <div id="radial-menu">
+    <div id="radial-ring-outer"></div>
+    <div class="radial-sector" id="radial-sector"></div>
+    <div id="radial-ring-inner"></div>
+    <div id="radial-center">
+      <div id="radial-center-title">Radial Menu</div>
+      <div id="radial-center-desc"></div>
+      <div id="radial-center-hint"></div>
+    </div>
+  </div>
+  <div id="radial-hint">
+    <kbd>Tab</kbd> 커스텀 &nbsp;|&nbsp; <kbd>ESC</kbd> / 우클릭 닫기
+  </div>
+</div>
+
+<div id="customize-panel">
+  <div id="customize-radial">
+    <div class="customize-ring-outer"></div>
+    <div class="radial-sector" id="customize-sector"></div>
+    <div class="customize-ring-inner"></div>
+    <div id="customize-radial-center">
+      <div class="cust-title">커스텀 모드</div>
+      <div class="cust-desc">슬롯을 선택하세요</div>
+    </div>
+  </div>
+  <div id="customize-list-panel">
+    <div id="customize-list-header">
+      <h3>액션 리스트</h3>
+      <input class="search-input" placeholder="🔍 검색..." id="customize-search">
+    </div>
+    <div class="category-bar" id="customize-cat-bar"></div>
+    <div id="customize-action-list"></div>
+  </div>
+  <div id="customize-reset-wrap" style="position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:310;">
+    <button id="btn-reset" style="
+      background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
+      color:#aaa;padding:8px 24px;border-radius:20px;cursor:pointer;font-size:12px;
+      backdrop-filter:blur(4px);transition:all 0.15s;
+    ">🔄 초기화</button>
+  </div>
+  <div id="customize-hint">
+    슬롯 클릭 → 리스트 클릭으로 배정 &nbsp;|&nbsp;
+    <kbd>Del</kbd> 슬롯 비우기 &nbsp;|&nbsp;
+    <kbd>F3</kbd> 검색 &nbsp;|&nbsp;
+    <kbd>Enter</kbd> 길게 눌러 완료 &nbsp;|&nbsp;
+    <kbd>ESC</kbd> 닫기
+  </div>
+</div>
+
+<div id="customize-confirm">
+  <div id="confirm-box">
+    <p>변경사항이 저장되지 않았습니다.<br>정말 나가시겠습니까?</p>
+    <div class="confirm-buttons">
+      <button class="btn-discard" id="confirm-discard">저장 안 함</button>
+      <button class="btn-cancel" id="confirm-cancel">계속 편집</button>
+    </div>
+  </div>
+</div>
+
+<div id="longpress-bar"><div id="longpress-fill"></div></div>
+<div id="longpress-label">Enter 길게 눌러 완료</div>
+
+<div id="submenu-panel">
+  <h3 id="submenu-title"></h3>
+  <div id="submenu-items"></div>
+</div>
+
+<div id="guide-panel">
+  <button class="guide-close" onclick="toggleGuide()">✕</button>
+  <h1>📋 인터랙션 가이드 (개발자용)</h1>
+  <p style="color:rgba(255,255,255,0.4);margin-bottom:20px;">이 문서는 게임 내 모든 인터랙션 규칙을 정리한 기획 문서입니다.</p>
+
+  <h2>1. 이동 & 카메라</h2>
+  <table>
+    <tr><th>입력</th><th>동작</th></tr>
+    <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td><td>캐릭터 이동</td></tr>
+    <tr><td><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></td><td>카메라 회전</td></tr>
+    <tr><td>우클릭 드래그</td><td>카메라 회전</td></tr>
+    <tr><td>좌클릭 드래그</td><td>카메라 패닝 (이동 시 자동 복귀)</td></tr>
+    <tr><td>휠 위/아래</td><td>줌 인/아웃</td></tr>
+    <tr><td><kbd>+</kbd> / <kbd>-</kbd></td><td>줌 인/아웃</td></tr>
+  </table>
+
+  <h2>2. 타겟팅 시스템</h2>
+  <h3>FOV 콘</h3>
+  <p>캐릭터 바라보는 방향 기준 ±30°, 사거리 6m. 원점은 캐릭터 뒤 5유닛 오프셋.</p>
+  <h3>두 개의 독립 큐</h3>
+  <table>
+    <tr><th>큐</th><th>키</th><th>동작</th></tr>
+    <tr><td>사물</td><td><kbd>F</kbd></td><td>FOV 내 스택. <kbd>V</kbd>로 전환</td></tr>
+    <tr><td>NPC</td><td><kbd>G</kbd></td><td>가장 가까이+가운데 1명. 전환 불가</td></tr>
+  </table>
+  <h3>타겟 리스트 (화면 우측)</h3>
+  <p>사물만 표시. Primary에 <kbd>V</kbd> 인디케이터 + <kbd>F</kbd> 키. 1개면 V 숨김.</p>
+
+  <h2>3. 상호작용 메뉴 (2뎁스)</h2>
+  <h3>열기</h3>
+  <table>
+    <tr><th>입력</th><th>대상</th></tr>
+    <tr><td><kbd>F</kbd></td><td>FOV primary 사물</td></tr>
+    <tr><td><kbd>G</kbd></td><td>FOV primary NPC</td></tr>
+    <tr><td><kbd>C</kbd></td><td>셀프 (토글)</td></tr>
+    <tr><td>좌클릭</td><td>호버된 대상 (빈곳 클릭 시 닫기)</td></tr>
+  </table>
+  <h3>2뎁스 사이드 바이 사이드</h3>
+  <p>1뎁스(좌) 유지 + 2뎁스(우) 패널. 1뎁스는 depth1-selected 상태 (배경만, 외곽선/F미리보기 없음).</p>
+  <h3>메뉴 조작</h3>
+  <table>
+    <tr><th>입력</th><th>1뎁스</th><th>2뎁스</th></tr>
+    <tr><td><kbd>↑</kbd>/<kbd>W</kbd>, <kbd>↓</kbd>/<kbd>S</kbd></td><td>포커스 이동 (루프)</td><td>포커스 이동 (루프)</td></tr>
+    <tr><td><kbd>V</kbd></td><td>아래 루프</td><td>아래 루프</td></tr>
+    <tr><td><kbd>→</kbd>/<kbd>D</kbd></td><td>2뎁스 진입</td><td>—</td></tr>
+    <tr><td><kbd>←</kbd>/<kbd>A</kbd></td><td>—</td><td>1뎁스로 뒤로</td></tr>
+    <tr><td><kbd>F</kbd>/<kbd>Enter</kbd></td><td>진입/실행</td><td>실행</td></tr>
+    <tr><td><kbd>Q</kbd></td><td>닫기</td><td>뒤로 (포커스 복원)</td></tr>
+    <tr><td><kbd>ESC</kbd></td><td>즉시 닫기</td><td>즉시 닫기</td></tr>
+    <tr><td>우클릭</td><td>닫기</td><td>뒤로</td></tr>
+    <tr><td>휠 위/아래</td><td>포커스 이동</td><td>포커스 이동</td></tr>
+    <tr><td>휠 클릭</td><td>선택</td><td>선택</td></tr>
+  </table>
+  <h3>키 가이드 (입력별)</h3>
+  <table>
+    <tr><th>입력 방식</th><th>표시</th></tr>
+    <tr><td>키보드</td><td><kbd>Q</kbd> 뒤로/닫기 | <kbd>↑↓</kbd> 탐색</td></tr>
+    <tr><td>마우스</td><td>우클릭 뒤로/닫기</td></tr>
+    <tr><td>컨트롤러</td><td><kbd>B</kbd> 뒤로/닫기 | D-pad 탐색</td></tr>
+  </table>
+  <p>포커스된 아이템 왼쪽에 <kbd>F</kbd> (컨트롤러: <kbd>A</kbd>) 배지 표시 (absolute).</p>
+  <h3>차단</h3>
+  <p>WASD 이동, 방향키 카메라, 휠 줌, 휠클릭 래디얼 — 모두 차단.</p>
+
+  <h2>4. 래디얼 메뉴 (원형 메뉴)</h2>
+  <h3>열기 (keyup 방식 — 조합키 충돌 방지)</h3>
+  <table>
+    <tr><th>입력</th><th>방식</th></tr>
+    <tr><td><kbd>'</kbd> <kbd>[</kbd> <kbd>Ctrl</kbd> <kbd>E</kbd> <kbd>X</kbd></td><td>keyboard (release 시)</td></tr>
+    <tr><td>휠 클릭 (release)</td><td>mouse</td></tr>
+    <tr><td>LB</td><td>controller</td></tr>
+  </table>
+  <p>같은 키 다시 → 닫기. <kbd>Q</kbd>/<kbd>ESC</kbd>/우클릭으로도 닫기.</p>
+  <h3>UI</h3>
+  <p>560px Glass Ring. 8등분 SVG. 아이콘만 표시. 포커스 시 하늘색 fill + 중앙에 타이틀/설명.</p>
+  <p>열리면 HUD + 타겟 리스트 숨김.</p>
+  <h3>조작</h3>
+  <table>
+    <tr><th>입력</th><th>동작</th></tr>
+    <tr><td><kbd>1</kbd>~<kbd>8</kbd></td><td>즉시 실행</td></tr>
+    <tr><td>방향키 (8방향)</td><td>조이스틱식 포커스</td></tr>
+    <tr><td><kbd>F</kbd>/<kbd>Enter</kbd></td><td>포커스 실행</td></tr>
+    <tr><td>좌클릭 (조각)</td><td>직접 실행</td></tr>
+    <tr><td>휠 스크롤</td><td>포커스 순환 (루프)</td></tr>
+    <tr><td>휠 클릭</td><td>포커스 실행</td></tr>
+    <tr><td><kbd>Tab</kbd></td><td>커스텀 모드</td></tr>
+  </table>
+
+  <h2>5. 커스텀 모드</h2>
+  <p><kbd>Tab</kbd>으로 진입. dim + 중앙 래디얼 + 우측 리스트. 양방향 배정.</p>
+  <table>
+    <tr><th>입력</th><th>동작</th></tr>
+    <tr><td><kbd>Q</kbd>/<kbd>ESC</kbd></td><td>나가기 (변경 시 확인 팝업)</td></tr>
+    <tr><td><kbd>Enter</kbd> 길게 (800ms)</td><td>저장 완료</td></tr>
+    <tr><td><kbd>Del</kbd></td><td>선택 슬롯 비우기</td></tr>
+    <tr><td><kbd>F3</kbd></td><td>검색 포커스</td></tr>
+  </table>
+  <p>액션 선택 시 모든 슬롯에 파란 glow. 슬롯 hover 시 중앙에 내용 표시.</p>
+
+  <h2>6. HUD & 패널</h2>
+  <table>
+    <tr><th>키</th><th>동작</th></tr>
+    <tr><td><kbd>U</kbd></td><td>HUD 숨기기</td></tr>
+    <tr><td><kbd>B</kbd></td><td>가방</td></tr>
+    <tr><td><kbd>P</kbd></td><td>스마트폰</td></tr>
+    <tr><td><kbd>I</kbd></td><td>건축모드 (전체화면, 토글)</td></tr>
+    <tr><td><kbd>ESC</kbd></td><td>게임 메뉴 (우클릭으로도 닫기)</td></tr>
+  </table>
+
+  <h2>7. 컨트롤러 매핑</h2>
+  <table>
+    <tr><th>버튼</th><th>동작</th></tr>
+    <tr><td>L-Stick</td><td>이동</td></tr>
+    <tr><td>R-Stick</td><td>카메라</td></tr>
+    <tr><td>A</td><td>F / 선택</td></tr>
+    <tr><td>B</td><td>Q / 뒤로</td></tr>
+    <tr><td>X</td><td>G / NPC</td></tr>
+    <tr><td>Y</td><td>C / 셀프</td></tr>
+    <tr><td>LB</td><td>래디얼 토글</td></tr>
+    <tr><td>RB</td><td>V / 타겟 전환</td></tr>
+    <tr><td>Start</td><td>ESC / 메뉴</td></tr>
+    <tr><td>D-pad</td><td>메뉴 탐색</td></tr>
+    <tr><td>L3</td><td>검색 포커스</td></tr>
+  </table>
+
+  <h2>8. UI State 다이어그램</h2>
+  <div class="state-diagram">[기본]
+  ├── '/[/Ctrl/E/X/휠클릭 (release) ──→ [래디얼]
+  │     ├── 같은키/Q/ESC/우클릭 ──→ [기본]
+  │     ├── Tab ──→ [커스텀]
+  │     │     ├── Enter 길게 ──→ [기본] (저장)
+  │     │     └── Q/ESC ──→ [기본] 또는 [확인팝업]
+  │     └── 좌클릭/숫자/F/Enter/휠클릭 ──→ [기본] (실행)
+  │
+  ├── F/G/C/좌클릭 ──→ [상호작용 1뎁스]
+  │     ├── →/D/F/Enter ──→ [2뎁스]
+  │     │     ├── F/Enter ──→ [기본] (실행)
+  │     │     ├── ←/A/Q/우클릭 ──→ [1뎁스]
+  │     │     └── ESC ──→ [기본]
+  │     ├── Q/우클릭/빈곳클릭 ──→ [기본]
+  │     └── ESC ──→ [기본]
+  │
+  ├── B/P/I ──→ [패널] ──→ 같은키/ESC ──→ [기본]
+  └── ESC ──→ [게임메뉴] ──→ ESC/우클릭 ──→ [기본]</div>
+
+  <h2>9. 개발자 모드</h2>
+  <p><kbd>/</kbd> 토글. 시야각 콘(초록), 방향 라인, 디버그 오버레이 (위치, yaw, FOV, 큐 상태).</p>
+</div>
+
+<div id="game-tooltip"></div>
+<div id="target-list-panel"></div>
+<div id="dev-overlay"></div>
+<div id="action-toast"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ─── Sound System (Web Audio API) ───
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+  // Resume context on first interaction
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const t = audioCtx.currentTime;
+
+  switch (type) {
+    case 'focus': // short soft tick
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, t);
+      osc.frequency.exponentialRampToValueAtTime(600, t + 0.06);
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc.start(t); osc.stop(t + 0.08);
+      break;
+    case 'error': // low buzz
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(150, t);
+      gain.gain.setValueAtTime(0.06, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      osc.start(t); osc.stop(t + 0.15);
+      break;
+    case 'execute': // bright confirm
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, t);
+      osc.frequency.exponentialRampToValueAtTime(1200, t + 0.08);
+      gain.gain.setValueAtTime(0.1, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+      osc.start(t); osc.stop(t + 0.12);
+      break;
+    case 'open': // rising tone
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, t);
+      osc.frequency.exponentialRampToValueAtTime(800, t + 0.1);
+      gain.gain.setValueAtTime(0.07, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      osc.start(t); osc.stop(t + 0.15);
+      break;
+    case 'close': // falling tone
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, t);
+      osc.frequency.exponentialRampToValueAtTime(300, t + 0.1);
+      gain.gain.setValueAtTime(0.07, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      osc.start(t); osc.stop(t + 0.15);
+      break;
+  }
+}
+
+// ─── Game State ───
+const state = {
+  keys: {},
+  radialOpen: false,
+  customizeOpen: false,
+  interactionMenuOpen: false,
+  submenuOpen: false,
+  nearObject: null,
+  nearNPC: null,
+  playerClothing: 'default',
+  playerMotion: null,
+  motionTime: 0,
+  // Camera drag state
+  rightDragging: false,
+  leftDragging: false,
+  lastMouseX: 0,
+  lastMouseY: 0,
+  cameraPanOffset: new THREE.Vector3(0, 0, 0), // offset from player due to panning
+  cameraPanned: false, // true if camera has been panned away from player
+};
+
+// ─── Radial Menu Data ───
+const CATEGORIES = [
+  { id: 'all', label: '전체', icon: '📋' },
+  { id: 'hud', label: 'HUD 메뉴', icon: '🖥️' },
+  { id: 'emote', label: '이모트', icon: '😊' },
+  { id: 'motion', label: '모션', icon: '💃' },
+  { id: 'clothing', label: '옷갈아입기', icon: '👕' },
+  { id: 'self', label: '셀프상호작용', icon: '📱' },
+];
+
+const ALL_ACTIONS = [
+  { id: 'build', label: '건축모드', icon: '🏗️', category: 'hud' },
+  { id: 'charCustom', label: '캐릭터 커스텀', icon: '🎨', category: 'hud' },
+  { id: 'phone', label: '스마트폰 메뉴', icon: '📱', category: 'hud' },
+  { id: 'bag', label: '가방 메뉴', icon: '🎒', category: 'hud' },
+  { id: 'emote_happy', label: '행복 😄', icon: '😄', category: 'emote', emoji: '😄' },
+  { id: 'emote_sad', label: '슬픔 😢', icon: '😢', category: 'emote', emoji: '😢' },
+  { id: 'emote_angry', label: '화남 😡', icon: '😡', category: 'emote', emoji: '😡' },
+  { id: 'emote_love', label: '사랑 ❤️', icon: '❤️', category: 'emote', emoji: '❤️' },
+  { id: 'emote_surprise', label: '놀람 😲', icon: '😲', category: 'emote', emoji: '😲' },
+  { id: 'emote_think', label: '생각 🤔', icon: '🤔', category: 'emote', emoji: '🤔' },
+  { id: 'emote_wave', label: '인사 👋', icon: '👋', category: 'emote', emoji: '👋' },
+  { id: 'emote_thumbsup', label: '좋아요 👍', icon: '👍', category: 'emote', emoji: '👍' },
+  { id: 'motion_dance', label: '춤추기', icon: '💃', category: 'motion' },
+  { id: 'motion_jump', label: '점프하기', icon: '🦘', category: 'motion' },
+  { id: 'motion_clap', label: '박수치기', icon: '👏', category: 'motion' },
+  { id: 'motion_sit', label: '앉기', icon: '🪑', category: 'motion' },
+  { id: 'motion_wave', label: '손흔들기', icon: '🙋', category: 'motion' },
+  { id: 'cloth_summer', label: '여름옷으로 갈아입기', icon: '☀️', category: 'clothing' },
+  { id: 'cloth_winter', label: '겨울옷으로 갈아입기', icon: '❄️', category: 'clothing' },
+  { id: 'self_phone', label: '스마트폰 보기', icon: '📱', category: 'self' },
+  { id: 'self_newspaper', label: '앉아서 신문읽기', icon: '📰', category: 'self' },
+  { id: 'self_gather', label: '불러모으기', icon: '📢', category: 'self' },
+];
+
+let radialSlots = [
+  { actionId: 'build', label: '건축모드', icon: '🏗️' },
+  { actionId: 'charCustom', label: '캐릭터 커스텀', icon: '🎨' },
+  { actionId: 'emote_happy', label: '행복', icon: '😄' },
+  { actionId: 'motion_dance', label: '춤추기', icon: '💃' },
+  { actionId: 'cloth_summer', label: '여름옷', icon: '☀️' },
+  { actionId: 'self_phone', label: '스마트폰', icon: '📱' },
+  { actionId: 'bag', label: '가방', icon: '🎒' },
+  { actionId: 'self_gather', label: '불러모으기', icon: '📢' },
+];
+
+// ─── Three.js Scene Setup ───
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+scene.fog = new THREE.Fog(0x87CEEB, 50, 150);
+
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 200);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0x8899bb, 0.6);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xfff5e0, 1.2);
+dirLight.position.set(30, 50, 20);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.camera.near = 1; dirLight.shadow.camera.far = 120;
+dirLight.shadow.camera.left = -40; dirLight.shadow.camera.right = 40;
+dirLight.shadow.camera.top = 40; dirLight.shadow.camera.bottom = -40;
+scene.add(dirLight);
+
+// Ground
+const groundGeo = new THREE.PlaneGeometry(200, 200);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x4a8c3f, roughness: 0.9 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
+scene.add(ground);
+
+// Grid path
+const pathGeo = new THREE.PlaneGeometry(4, 60);
+const pathMat = new THREE.MeshStandardMaterial({ color: 0x999988, roughness: 0.8 });
+const path1 = new THREE.Mesh(pathGeo, pathMat);
+path1.rotation.x = -Math.PI / 2; path1.position.set(0, 0.01, 0);
+scene.add(path1);
+const path2 = path1.clone(); path2.rotation.z = Math.PI / 2;
+scene.add(path2);
+
+// ─── Helper: Create a simple character ───
+function createCharacter(color, x, z) {
+  const group = new THREE.Group();
+  const bodyGeo = new THREE.CapsuleGeometry(0.35, 0.8, 8, 16);
+  const bodyMat = new THREE.MeshStandardMaterial({ color });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 1.1; body.castShadow = true;
+  group.add(body);
+  const headGeo = new THREE.SphereGeometry(0.28, 16, 16);
+  const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = 1.9; head.castShadow = true;
+  group.add(head);
+  const eyeGeo = new THREE.SphereGeometry(0.04, 8, 8);
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+  const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeL.position.set(-0.1, 1.95, 0.24);
+  const eyeR = eyeL.clone(); eyeR.position.x = 0.1;
+  group.add(eyeL, eyeR);
+  group.position.set(x, 0, z);
+  scene.add(group);
+  return group;
+}
+
+// Player
+const player = createCharacter(0x3366cc, 0, 0);
+player.userData = { name: '나', isPlayer: true };
+const playerBody = player.children[0];
+
+// Camera
+let camDistance = 8;
+let camYaw = 0, camPitch = -0.35;
+const camLookTarget = new THREE.Vector3(); // what camera looks at (player or panned)
+
+// ─── Raycaster for mouse hover ───
+const raycaster = new THREE.Raycaster();
+const mouseNDC = new THREE.Vector2();
+let hoveredObject = null; // currently hovered mesh or npc group
+let hoveredOriginalColors = new Map(); // store original emissive for restore
+
+function setHighlight(obj, on) {
+  const meshes = [];
+  if (obj.isMesh) meshes.push(obj);
+  obj.traverse(child => { if (child.isMesh) meshes.push(child); });
+  meshes.forEach(m => {
+    if (on) {
+      if (!hoveredOriginalColors.has(m)) {
+        hoveredOriginalColors.set(m, m.material.emissive ? m.material.emissive.getHex() : 0);
+      }
+      if (m.material.emissive) m.material.emissive.setHex(0x333355);
+    } else {
+      const orig = hoveredOriginalColors.get(m) || 0;
+      if (m.material.emissive) m.material.emissive.setHex(orig);
+      hoveredOriginalColors.delete(m);
+    }
+  });
+}
+
+function updateMouseHover(clientX, clientY) {
+  if (state.radialOpen || state.customizeOpen || isAnyPanelOpen()) return;
+
+  mouseNDC.x = (clientX / window.innerWidth) * 2 - 1;
+  mouseNDC.y = -(clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouseNDC, camera);
+
+  // Collect all interactive meshes + NPC meshes + player meshes
+  const targets = [...interactiveObjects];
+  npcs.forEach(npc => npc.traverse(child => { if (child.isMesh) targets.push(child); }));
+  interactiveObjects.forEach(obj => obj.traverse(child => { if (child.isMesh && child !== obj) targets.push(child); }));
+  player.traverse(child => { if (child.isMesh) targets.push(child); });
+
+  const intersects = raycaster.intersectObjects(targets, false);
+  let newHovered = null;
+  if (intersects.length > 0) {
+    let hit = intersects[0].object;
+    while (hit) {
+      if (hit.userData && hit.userData.isPlayer) { newHovered = hit; break; }
+      if (hit.userData && hit.userData.isInteractive) { newHovered = hit; break; }
+      if (hit.userData && hit.userData.isNPC) { newHovered = hit; break; }
+      if (hit.parent && hit.parent.userData && hit.parent.userData.isPlayer) { newHovered = hit.parent; break; }
+      if (hit.parent && hit.parent.userData && hit.parent.userData.isNPC) { newHovered = hit.parent; break; }
+      if (hit.parent && hit.parent.userData && hit.parent.userData.isInteractive) { newHovered = hit.parent; break; }
+      hit = hit.parent;
+    }
+  }
+
+  if (newHovered !== hoveredObject) {
+    if (hoveredObject) setHighlight(hoveredObject, false);
+    hoveredObject = newHovered;
+    if (hoveredObject) setHighlight(hoveredObject, true);
+    renderer.domElement.style.cursor = hoveredObject ? 'pointer' : 'default';
+  }
+}
+
+// ─── Interactive Objects ───
+const interactiveObjects = [];
+function addObject(geo, mat, x, y, z, name, interactions) {
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true;
+  mesh.userData = { name, interactions, isInteractive: true };
+  scene.add(mesh);
+  interactiveObjects.push(mesh);
+  return mesh;
+}
+
+// Bench
+const benchSeat = new THREE.BoxGeometry(2.5, 0.15, 0.6);
+const benchMat = new THREE.MeshStandardMaterial({ color: 0x8B5E3C });
+const bench = addObject(benchSeat, benchMat, 5, 0.55, -3, '벤치', ['앉기', '눕기', '아이템 놓기']);
+const legGeo = new THREE.BoxGeometry(0.12, 0.55, 0.5);
+[-1, 1].forEach(s => {
+  const leg = new THREE.Mesh(legGeo, benchMat);
+  leg.position.set(s * 1, 0.27, 0); bench.add(leg);
+});
+const backGeo = new THREE.BoxGeometry(2.5, 0.8, 0.08);
+const back = new THREE.Mesh(backGeo, benchMat);
+back.position.set(0, 0.5, -0.26); bench.add(back);
+
+// Lamp post
+const lampPole = new THREE.CylinderGeometry(0.08, 0.1, 3.5, 8);
+const lampMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+addObject(lampPole, lampMat, -4, 1.75, 5, '가로등', ['불 켜기', '불 끄기']);
+const lampHead = new THREE.SphereGeometry(0.3, 8, 8);
+const lampLightMat = new THREE.MeshStandardMaterial({ color: 0xffee88, emissive: 0xffdd44, emissiveIntensity: 0.5 });
+const lampBulb = new THREE.Mesh(lampHead, lampLightMat);
+lampBulb.position.set(-4, 3.6, 5); scene.add(lampBulb);
+const pointLight = new THREE.PointLight(0xffdd66, 0.8, 12);
+pointLight.position.copy(lampBulb.position); scene.add(pointLight);
+
+// Mailbox
+const mailGeo = new THREE.BoxGeometry(0.5, 0.8, 0.4);
+const mailMat = new THREE.MeshStandardMaterial({ color: 0xcc3333 });
+addObject(mailGeo, mailMat, 7, 0.6, 4, '우체통', ['편지 넣기', '편지 확인하기']);
+const mailPole = new THREE.CylinderGeometry(0.06, 0.06, 0.6, 6);
+const mailP = new THREE.Mesh(mailPole, new THREE.MeshStandardMaterial({ color: 0x666666 }));
+mailP.position.set(7, 0.1, 4); scene.add(mailP);
+
+// Trees
+function addTree(x, z) {
+  const trunk = new THREE.CylinderGeometry(0.15, 0.2, 1.5, 8);
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6B4226 });
+  const t = addObject(trunk, trunkMat, x, 0.75, z, '나무', ['열매 따기', '나무에 기대기', '둘러보기']);
+  const foliage = new THREE.SphereGeometry(1.2, 8, 8);
+  const fMat = new THREE.MeshStandardMaterial({ color: 0x2d8a4e });
+  const f = new THREE.Mesh(foliage, fMat);
+  f.position.y = 1.6; f.castShadow = true; t.add(f);
+}
+addTree(-8, -6); addTree(10, 8); addTree(-12, 10); addTree(15, -5);
+
+// Fountain
+const ftnBase = new THREE.CylinderGeometry(1.8, 2, 0.6, 16);
+const ftnMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+addObject(ftnBase, ftnMat, -6, 0.3, -8, '분수대', ['동전 던지기', '물 마시기', '소원 빌기']);
+const ftnInner = new THREE.CylinderGeometry(1.4, 1.4, 0.5, 16);
+const waterMat = new THREE.MeshStandardMaterial({ color: 0x4488cc, transparent: true, opacity: 0.6 });
+const water = new THREE.Mesh(ftnInner, waterMat);
+water.position.set(-6, 0.35, -8); scene.add(water);
+const ftnPillar = new THREE.CylinderGeometry(0.15, 0.2, 1.5, 8);
+const pillar = new THREE.Mesh(ftnPillar, ftnMat);
+pillar.position.set(-6, 1, -8); scene.add(pillar);
+
+// Vending machine
+const vendGeo = new THREE.BoxGeometry(0.8, 1.8, 0.7);
+const vendMat = new THREE.MeshStandardMaterial({ color: 0x2255aa });
+addObject(vendGeo, vendMat, 12, 0.9, -2, '자판기', ['음료 구매', '동전 넣기', '발로 차기']);
+
+// Table with items on top
+const tableMat = new THREE.MeshStandardMaterial({ color: 0x8B6914 });
+const tableTop = new THREE.BoxGeometry(2.0, 0.1, 1.2);
+const table = addObject(tableTop, tableMat, 3, 0.75, 2, '테이블', ['닦기', '아이템 놓기', '의자 당기기']);
+// Table legs
+const tLegGeo = new THREE.BoxGeometry(0.08, 0.7, 0.08);
+[[-0.85, -0.5], [0.85, -0.5], [-0.85, 0.5], [0.85, 0.5]].forEach(([lx, lz]) => {
+  const leg = new THREE.Mesh(tLegGeo, tableMat);
+  leg.position.set(lx, -0.35, lz); table.add(leg);
+});
+
+// Items on table
+const plateMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee });
+const plateGeo = new THREE.CylinderGeometry(0.2, 0.22, 0.04, 16);
+addObject(plateGeo, plateMat, 2.5, 0.82, 2, '빈 접시', ['치우기', '들어올리기']);
+
+const cakeMat = new THREE.MeshStandardMaterial({ color: 0xf5c891 });
+const cakeGeo = new THREE.CylinderGeometry(0.15, 0.18, 0.15, 12);
+const cake = addObject(cakeGeo, cakeMat, 3.0, 0.88, 2, '케이크', ['먹기', '사진 찍기', '나눠 먹기']);
+// Cream top
+const creamGeo = new THREE.CylinderGeometry(0.16, 0.15, 0.04, 12);
+const creamMat = new THREE.MeshStandardMaterial({ color: 0xfff8ee });
+const cream = new THREE.Mesh(creamGeo, creamMat); cream.position.y = 0.08; cake.add(cream);
+
+const laptopBase = new THREE.BoxGeometry(0.35, 0.02, 0.25);
+const laptopMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
+const laptop = addObject(laptopBase, laptopMat, 3.5, 0.81, 2, '노트북', ['사용하기', '닫기', '가져가기']);
+// Screen
+const screenGeo = new THREE.BoxGeometry(0.33, 0.22, 0.01);
+const screenMat = new THREE.MeshStandardMaterial({ color: 0x333333, emissive: 0x112244, emissiveIntensity: 0.3 });
+const screen = new THREE.Mesh(screenGeo, screenMat);
+screen.position.set(0, 0.12, -0.12); screen.rotation.x = -0.4; laptop.add(screen);
+
+// ─── NPCs ───
+const npcs = [];
+function addNPC(name, color, x, z, dialogues) {
+  const npc = createCharacter(color, x, z);
+  npc.userData = { name, dialogues, isNPC: true, alertVisible: false };
+  npcs.push(npc);
+  return npc;
+}
+addNPC('마을 주민 철수', 0xcc6633, 4, 6, ['안녕하세요! 좋은 날씨네요.', '오늘 장터에서 좋은 물건을 샀어요.', '저기 분수대에 가봤어요?']);
+addNPC('상인 영희', 0x993399, -5, 3, ['어서 오세요! 뭘 도와드릴까요?', '오늘 특별 할인 중이에요!', '새로운 옷이 들어왔어요.']);
+addNPC('경비원 민수', 0x336633, 10, -6, ['이 구역은 안전합니다.', '수상한 사람을 보면 알려주세요.', '좋은 하루 보내세요.']);
+
+// Patrolling NPCs
+const patrolNPC1 = addNPC('배달원 지훈', 0xcc8833, -3, 0, ['배달 중입니다!', '길 좀 비켜주세요.', '오늘 배달이 많네요.']);
+patrolNPC1.userData.patrol = {
+  points: [new THREE.Vector3(-3, 0, 0), new THREE.Vector3(8, 0, 0), new THREE.Vector3(8, 0, 8), new THREE.Vector3(-3, 0, 8)],
+  index: 0, speed: 1.5
+};
+
+const patrolNPC2 = addNPC('산책자 수진', 0x6633aa, 0, -5, ['산책하기 좋은 날이에요.', '이 근처에 좋은 카페 있나요?', '저도 여기 처음이에요.']);
+patrolNPC2.userData.patrol = {
+  points: [new THREE.Vector3(0, 0, -5), new THREE.Vector3(-8, 0, -5), new THREE.Vector3(-8, 0, 5), new THREE.Vector3(0, 0, 5)],
+  index: 0, speed: 1.0
+};
+
+let npcIdleTime = 0;
+
+// ─── Player Movement ───
+const moveDir = new THREE.Vector3();
+const playerSpeed = 6;
+
+function updatePlayer(dt) {
+  if (state.playerMotion) {
+    state.motionTime += dt;
+    animateMotion(dt);
+    if (state.motionTime > 4) {
+      state.playerMotion = null;
+      state.motionTime = 0;
+      player.position.y = 0;
+      player.rotation.set(0, player.rotation.y, 0);
+    }
+    return;
+  }
+
+  moveDir.set(0, 0, 0);
+  if (state.keys['KeyW']) moveDir.z -= 1;
+  if (state.keys['KeyS']) moveDir.z += 1;
+  if (state.keys['KeyA']) moveDir.x -= 1;
+  if (state.keys['KeyD']) moveDir.x += 1;
+
+  if (moveDir.length() > 0) {
+    moveDir.normalize();
+    const sin = Math.sin(camYaw), cos = Math.cos(camYaw);
+    const rx = moveDir.x * cos + moveDir.z * sin;
+    const rz = -moveDir.x * sin + moveDir.z * cos;
+    moveDir.set(rx, 0, rz);
+
+    player.position.addScaledVector(moveDir, playerSpeed * dt);
+    player.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+    playerBody.position.y = 1.1 + Math.sin(performance.now() * 0.01) * 0.05;
+
+    // Reset pan offset when player moves — camera returns to follow player
+    if (state.cameraPanned) {
+      state.cameraPanned = false;
+      state.cameraPanOffset.set(0, 0, 0);
+    }
+  }
+
+  player.position.x = THREE.MathUtils.clamp(player.position.x, -50, 50);
+  player.position.z = THREE.MathUtils.clamp(player.position.z, -50, 50);
+}
+
+function animateMotion(dt) {
+  const t = state.motionTime;
+  switch (state.playerMotion) {
+    case 'dance':
+      player.rotation.y += dt * 4;
+      playerBody.position.y = 1.1 + Math.sin(t * 6) * 0.15;
+      break;
+    case 'jump':
+      player.position.y = Math.max(0, Math.sin(t * 3) * 1.5);
+      break;
+    case 'clap':
+      playerBody.position.y = 1.1 + Math.abs(Math.sin(t * 8)) * 0.05;
+      break;
+    case 'sit':
+      playerBody.position.y = 0.6;
+      break;
+    case 'wave':
+      player.rotation.z = Math.sin(t * 5) * 0.15;
+      break;
+  }
+}
+
+// ─── Camera ───
+const arrowRotateSpeed = 2.0; // radians per second for arrow key rotation
+
+function updateCamera(dt) {
+  // Arrow key camera rotation (blocked during interaction menu & radial menu)
+  if (!state.interactionMenuOpen && !state.radialOpen) {
+    if (state.keys['ArrowLeft'])  camYaw += arrowRotateSpeed * dt;
+    if (state.keys['ArrowRight']) camYaw -= arrowRotateSpeed * dt;
+    if (state.keys['ArrowUp'])    camPitch = THREE.MathUtils.clamp(camPitch + arrowRotateSpeed * dt, -1.2, 0.8);
+    if (state.keys['ArrowDown'])  camPitch = THREE.MathUtils.clamp(camPitch - arrowRotateSpeed * dt, -1.2, 0.8);
+  }
+
+  // Compute camera target: player position + pan offset
+  const target = player.position.clone().add(new THREE.Vector3(0, 1.5, 0)).add(state.cameraPanOffset);
+
+  // Compute camera position from spherical coords around target
+  const cosP = Math.cos(camPitch);
+  const offset = new THREE.Vector3(
+    Math.sin(camYaw) * cosP * camDistance,
+    -Math.sin(camPitch) * camDistance + 3,
+    Math.cos(camYaw) * cosP * camDistance
+  );
+
+  const desiredPos = target.clone().add(offset);
+  camera.position.lerp(desiredPos, 0.1);
+  camLookTarget.lerp(target, 0.1);
+  camera.lookAt(camLookTarget);
+}
+
+// ─── FOV-Based Targeting System ───
+const TARGET_RANGE = 6;        // max distance (doubled back)
+const TARGET_FOV = Math.PI / 6; // 30° cone half-angle
+let devMode = false;
+
+// Separate queues for NPCs and objects
+let npcTarget = null;         // single NPC target (closest+centered), no cycling
+let objectTargets = [];       // objects in FOV, sorted [{obj, dist, angle}]
+let objectPrimaryIndex = 0;   // V cycles through this
+
+// Combined for debug/rendering
+let targetsInFOV = [];
+
+// Debug cone visualization
+let debugCone = null;
+let debugLine = null;
+
+function createDebugVisuals() {
+  // Direction line
+  const lineGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(0, 0, -TARGET_RANGE)
+  ]);
+  const lineMat = new THREE.LineBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.6 });
+  debugLine = new THREE.Line(lineGeo, lineMat);
+  debugLine.visible = false;
+  scene.add(debugLine);
+
+  // FOV cone
+  const coneGeo = new THREE.ConeGeometry(
+    Math.tan(TARGET_FOV) * TARGET_RANGE, TARGET_RANGE, 32, 1, true
+  );
+  const coneMat = new THREE.MeshBasicMaterial({
+    color: 0x00ff00, transparent: true, opacity: 0.06,
+    side: THREE.DoubleSide, depthWrite: false
+  });
+  debugCone = new THREE.Mesh(coneGeo, coneMat);
+  debugCone.visible = false;
+  scene.add(debugCone);
+}
+createDebugVisuals();
+
+function updateDebugVisuals() {
+  if (!debugCone || !debugLine) return;
+  const show = devMode;
+  debugCone.visible = show;
+  debugLine.visible = show;
+  if (!show) return;
+
+  const yaw = player.rotation.y;
+  const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+  const ORIGIN_OFFSET = -5.0;
+  // Offset origin backward (same as targeting detection)
+  const px = player.position.x + fwdX * ORIGIN_OFFSET;
+  const pz = player.position.z + fwdZ * ORIGIN_OFFSET;
+  const py = player.position.y + 1.2;
+
+  // Direction line starts from offset origin
+  debugLine.position.set(px, py, pz);
+  debugLine.rotation.set(0, yaw, 0);
+
+  // Cone: tip at offset origin, extends forward
+  const halfLen = TARGET_RANGE / 2;
+  debugCone.position.set(
+    px + fwdX * halfLen,
+    py,
+    pz + fwdZ * halfLen
+  );
+  // Rotate: first tilt cone from Y-axis to Z-axis (point forward), then rotate by yaw
+  debugCone.rotation.set(0, 0, 0);
+  debugCone.rotation.order = 'YXZ';
+  debugCone.rotation.y = yaw;
+  debugCone.rotation.x = -Math.PI / 2; // tilt so cone points along -Z
+}
+
+function getObjectTopY(obj) {
+  if (obj.geometry) {
+    obj.geometry.computeBoundingBox();
+    const bb = obj.geometry.boundingBox;
+    return (bb ? bb.max.y : 1) + obj.position.y * 0.3 + 0.5;
+  }
+  return 2.0;
+}
+
+function updateTargeting() {
+  // Clear old UI
+  document.querySelectorAll('.target-primary, .target-secondary').forEach(el => el.remove());
+
+  if (state.radialOpen || state.customizeOpen || state.interactionMenuOpen || state.submenuOpen) {
+    document.getElementById('target-list-panel').innerHTML = '';
+    document.getElementById('target-list-panel').style.display = 'none';
+    return;
+  }
+
+  const playerYaw = player.rotation.y;
+  const fwd = new THREE.Vector2(-Math.sin(playerYaw), -Math.cos(playerYaw)).normalize();
+
+  // Offset origin forward by 1 unit so the cone starts in front of the character
+  const ORIGIN_OFFSET = -5.0;
+  const originX = player.position.x + fwd.x * ORIGIN_OFFSET;
+  const originZ = player.position.z + fwd.y * ORIGIN_OFFSET;
+
+  // ─── Object queue (F key, V cycles) ───
+  const objCandidates = [];
+  for (const obj of interactiveObjects) {
+    const toObj = new THREE.Vector2(obj.position.x - originX, obj.position.z - originZ);
+    const dist = toObj.length();
+    if (dist > TARGET_RANGE || dist < 0.1) continue;
+    const dir = toObj.normalize();
+    const angle = Math.acos(THREE.MathUtils.clamp(fwd.dot(dir), -1, 1));
+    if (angle < TARGET_FOV) {
+      objCandidates.push({ obj, dist, angle, isNPC: false });
+    }
+  }
+  objCandidates.sort((a, b) => (a.angle * 0.7 + a.dist * 0.3) - (b.angle * 0.7 + b.dist * 0.3));
+  objectTargets = objCandidates;
+
+  // Clamp object primary index
+  if (objectPrimaryIndex >= objectTargets.length) objectPrimaryIndex = 0;
+
+  // ─── NPC queue (G key, always single best) ───
+  let bestNPC = null;
+  let bestNPCScore = Infinity;
+  for (const npc of npcs) {
+    const toNPC = new THREE.Vector2(npc.position.x - originX, npc.position.z - originZ);
+    const dist = toNPC.length();
+    if (dist > TARGET_RANGE || dist < 0.1) continue;
+    const dir = toNPC.normalize();
+    const angle = Math.acos(THREE.MathUtils.clamp(fwd.dot(dir), -1, 1));
+    if (angle < TARGET_FOV) {
+      const score = angle * 0.5 + dist * 0.5;
+      if (score < bestNPCScore) {
+        bestNPCScore = score;
+        bestNPC = { obj: npc, dist, angle, isNPC: true };
+      }
+    }
+  }
+  npcTarget = bestNPC;
+
+  // ─── Update state for F/G key interaction ───
+  const primaryObj = objectTargets[objectPrimaryIndex] || null;
+  state.nearObject = primaryObj ? primaryObj.obj : null;
+  state.nearNPC = npcTarget ? npcTarget.obj : null;
+
+  // ─── Combine for debug ───
+  targetsInFOV = [...objectTargets];
+  if (npcTarget) targetsInFOV.push(npcTarget);
+
+  // ─── Render object targets ───
+  for (let i = 0; i < objectTargets.length; i++) {
+    const t = objectTargets[i];
+    const topY = getObjectTopY(t.obj);
+    if (i === objectPrimaryIndex) {
+      renderPrimaryTarget(t.obj.position, lastInputDevice === 'controller' ? 'A' : 'F', t.obj.userData.name, topY);
+    } else {
+      renderSecondaryTarget(t.obj.position, t.obj.userData.name, topY);
+    }
+  }
+
+  // ─── Render NPC target (always primary if exists) ───
+  if (npcTarget) {
+    renderPrimaryTarget(npcTarget.obj.position, lastInputDevice === 'controller' ? 'X' : 'G', npcTarget.obj.userData.name, 2.4);
+  }
+
+  updateDevOverlay();
+  renderTargetList();
+}
+
+function renderPrimaryTarget(worldPos, key, label, topY) {
+  const pos3D = new THREE.Vector3(worldPos.x, topY + 0.3, worldPos.z);
+  const proj = pos3D.clone().project(camera);
+  if (proj.z > 1) return;
+  const x = (proj.x + 1) / 2 * window.innerWidth;
+  const y = (-proj.y + 1) / 2 * window.innerHeight;
+  if (x < -50 || x > window.innerWidth + 50 || y < -50 || y > window.innerHeight + 50) return;
+
+  const el = document.createElement('div');
+  el.className = 'target-primary';
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  el.innerHTML = `
+    <div class="key-badge">${key}</div>
+    <div class="key-label">${label}</div>
+  `;
+  document.body.appendChild(el);
+}
+
+function renderSecondaryTarget(worldPos, label, topY) {
+  const pos3D = new THREE.Vector3(worldPos.x, topY, worldPos.z);
+  const proj = pos3D.clone().project(camera);
+  if (proj.z > 1) return;
+  const x = (proj.x + 1) / 2 * window.innerWidth;
+  const y = (-proj.y + 1) / 2 * window.innerHeight;
+  if (x < -50 || x > window.innerWidth + 50 || y < -50 || y > window.innerHeight + 50) return;
+
+  const el = document.createElement('div');
+  el.className = 'target-secondary';
+  el.style.left = x + 'px';
+  el.style.top = y + 'px';
+  el.innerHTML = `<div class="ring"></div><div class="sec-label">${label}</div>`;
+  document.body.appendChild(el);
+}
+
+function renderTargetList() {
+  const panel = document.getElementById('target-list-panel');
+  panel.innerHTML = '';
+
+  const isCtrl = lastInputDevice === 'controller';
+
+  // Object targets
+  const vKey = isCtrl ? 'RB' : 'V';
+  const fKey = isCtrl ? 'A' : 'F';
+  const showV = objectTargets.length > 1;
+  objectTargets.forEach((t, i) => {
+    const isActive = (i === objectPrimaryIndex);
+    const el = document.createElement('div');
+    el.className = 'target-list-item' + (isActive ? ' active' : '');
+    el.style.position = 'relative';
+    el.innerHTML = `
+      <span class="tl-name">${t.obj.userData.name}</span>
+      ${isActive ? `<span class="tl-key">${fKey}</span>` : ''}
+      ${isActive && showV ? `<span class="tl-v-indicator">▲<span class="tl-key">${vKey}</span>▼</span>` : ''}
+    `;
+    panel.appendChild(el);
+  });
+
+  // Hide panel if empty
+  panel.style.display = objectTargets.length > 0 ? 'flex' : 'none';
+}
+
+function cycleTarget() {
+  // V only cycles objects, not NPCs
+  if (objectTargets.length <= 1) return;
+  objectPrimaryIndex = (objectPrimaryIndex + 1) % objectTargets.length;
+  showToast(`타겟: ${objectTargets[objectPrimaryIndex].obj.userData.name}`);
+}
+
+function updateDevOverlay() {
+  const el = document.getElementById('dev-overlay');
+  el.classList.toggle('show', devMode);
+  if (!devMode) return;
+
+  const yaw = player.rotation.y;
+  const degYaw = THREE.MathUtils.radToDeg(yaw).toFixed(1);
+  const degFov = THREE.MathUtils.radToDeg(TARGET_FOV).toFixed(0);
+  const p = player.position;
+
+  const objPrimary = objectTargets[objectPrimaryIndex];
+  el.innerHTML = `
+    [DEV MODE]<br>
+    pos: ${p.x.toFixed(1)}, ${p.z.toFixed(1)}<br>
+    yaw: ${degYaw}°<br>
+    FOV cone: ±${degFov}° | range: ${TARGET_RANGE}m<br>
+    ── objects [F] ──<br>
+    &nbsp; in FOV: ${objectTargets.length} | primary[${objectPrimaryIndex}]: ${objPrimary?.obj.userData.name || 'none'}<br>
+    &nbsp; V to cycle<br>
+    ── NPC [G] ──<br>
+    &nbsp; target: ${npcTarget?.obj.userData.name || 'none'}<br>
+    <span style="color:#0a0">▲ = facing direction</span>
+  `;
+}
+
+function toggleDevMode() {
+  devMode = !devMode;
+  showToast(devMode ? '개발자 모드 ON' : '개발자 모드 OFF');
+}
+
+// ─── Global Input Device Tracker ───
+let lastInputDevice = 'keyboard'; // 'keyboard' | 'mouse' | 'controller'
+
+function setInputDevice(device) {
+  if (lastInputDevice === device) return;
+  lastInputDevice = device;
+  updateControlGuide();
+}
+
+function updateControlGuide() {
+  const el = document.getElementById('control-guide');
+  if (!el) return;
+  const c = lastInputDevice === 'controller';
+  const kbd = (t) => `<kbd>${t}</kbd>`;
+  if (c) {
+    el.innerHTML = `
+      ${kbd('L-Stick')} 이동<br>
+      ${kbd('R-Stick')} 카메라<br>
+      ${kbd('A')} 사물 상호작용<br>
+      ${kbd('X')} NPC 상호작용<br>
+      ${kbd('RB')} 타겟 전환<br>
+      ${kbd('LB')} 래디얼 메뉴<br>
+      ${kbd('Y')} 셀프 상호작용<br>
+      ${kbd('Start')} 메뉴
+    `;
+  } else {
+    el.innerHTML = `
+      ${kbd('WASD')} 이동<br>
+      ${kbd('↑↓←→')} 카메라<br>
+      ${kbd('F')} 사물 상호작용<br>
+      ${kbd('G')} NPC 상호작용<br>
+      ${kbd('V')} 타겟 전환<br>
+      ${kbd("'")} 래디얼 메뉴<br>
+      ${kbd('C')} 셀프 상호작용<br>
+      ${kbd('U')} HUD 숨기기<br>
+      ${kbd('ESC')} 메뉴
+    `;
+  }
+}
+
+// ─── Interaction Menus (2-depth system) ───
+let interactFocusIndex = -1;
+let interactMenuItems = [];
+let interactInputMethod = 'keyboard';
+let interactDepth = 1; // 1 or 2
+let depth1FocusIndex = 0; // remembered focus when entering depth 2
+let currentInteractTarget = null; // obj or npc being interacted with
+
+// Submenu data for NPC categories
+const NPC_SUBMENUS = {
+  '그룹': [
+    { label: '파티 초대', icon: '🎉' },
+    { label: '파티 떠나기', icon: '🚶' },
+  ],
+  '개인 행동': [
+    { label: '춤추기', icon: '💃' },
+    { label: '앉기', icon: '🪑' },
+    { label: '손흔들기', icon: '👋' },
+  ],
+  '스마트폰': [
+    { label: '전화하기', icon: '📞' },
+    { label: '문자 보내기', icon: '💬' },
+    { label: '사진 보여주기', icon: '📸' },
+  ],
+  '상호 행동': [
+    { label: '싸우기', icon: '👊' },
+    { label: '이름 묻기', icon: '❓' },
+    { label: '대화하기', icon: '💬' },
+    { label: '칭찬하기', icon: '👏' },
+    { label: '농담하기', icon: '😂' },
+  ],
+};
+
+const ACTION_ICONS = {
+  '앉기': '🪑', '눕기': '🛋️', '아이템 놓기': '📦',
+  '불 켜기': '💡', '불 끄기': '🌑',
+  '편지 넣기': '✉️', '편지 확인하기': '📬',
+  '열매 따기': '🍎', '나무에 기대기': '🌳', '둘러보기': '👀',
+  '동전 던지기': '🪙', '물 마시기': '💧', '소원 빌기': '🙏',
+  '음료 구매': '🥤', '동전 넣기': '🪙', '발로 차기': '🦵',
+};
+
+function updateInteractHint() {
+  const el = document.getElementById('interact-close-hint');
+  const kbd = (t) => `<span style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:4px;padding:1px 7px;font-size:11px;font-weight:bold;">${t}</span>`;
+  const sep = `<span style="margin-left:8px;opacity:0.4">|</span>`;
+  const backLabel = interactDepth === 2 ? '뒤로' : '닫기';
+
+  if (interactInputMethod === 'mouse') {
+    el.innerHTML = `${kbd('우클릭')} <span>${backLabel}</span>`;
+  } else if (lastInputDevice === 'controller') {
+    el.innerHTML = `${kbd('B')} <span>${backLabel}</span> ${sep} ${kbd('D-pad')} <span>탐색</span>`;
+  } else {
+    el.innerHTML = `${kbd('Q')} <span>${backLabel}</span> ${sep} ${kbd('↑↓')} <span>탐색</span>`;
+  }
+}
+
+function focusInteractItem(index) {
+  interactMenuItems.forEach(m => { m.el.classList.remove('focused'); m.el.removeAttribute('data-key'); });
+  while (index >= 0 && index < interactMenuItems.length && interactMenuItems[index].disabled) {
+    index++;
+  }
+  if (index < 0 || index >= interactMenuItems.length) {
+    interactFocusIndex = -1;
+    return;
+  }
+  interactFocusIndex = index;
+  const keyLabel = lastInputDevice === 'controller' ? 'A' : 'F';
+  interactMenuItems[index].el.setAttribute('data-key', keyLabel);
+  interactMenuItems[index].el.classList.add('focused');
+  playSound('focus');
+  interactMenuItems[index].el.scrollIntoView({ block: 'nearest' });
+}
+
+function createMenuItem(label, icon, onclick, disabled = false, submenuKey = null) {
+  const div = document.createElement('div');
+  div.className = 'menu-item' + (disabled ? ' disabled' : '');
+  const hasSubmenu = !!submenuKey;
+  const chevron = hasSubmenu ? '<span class="chevron">›</span>' : '';
+  div.innerHTML = `
+    <div class="item-left">
+      ${icon ? `<span class="item-icon">${icon}</span>` : ''}
+      <span>${label}</span>
+    </div>
+    ${chevron}
+  `;
+  const idx = interactMenuItems.length;
+  if (!disabled && onclick) {
+    div.onclick = onclick;
+    div.onmouseenter = () => focusInteractItem(idx);
+  }
+  interactMenuItems.push({ el: div, onclick, disabled, submenuKey });
+  return div;
+}
+
+// Depth-2 items tracked separately
+let depth2MenuItems = [];
+let depth2FocusIndex = -1;
+
+function focusDepth2Item(index) {
+  depth2MenuItems.forEach(m => { m.el.classList.remove('focused'); m.el.removeAttribute('data-key'); });
+  while (index >= 0 && index < depth2MenuItems.length && depth2MenuItems[index].disabled) index++;
+  if (index < 0 || index >= depth2MenuItems.length) { depth2FocusIndex = -1; return; }
+  depth2FocusIndex = index;
+  const keyLabel = lastInputDevice === 'controller' ? 'A' : 'F';
+  depth2MenuItems[index].el.setAttribute('data-key', keyLabel);
+  depth2MenuItems[index].el.classList.add('focused');
+  depth2MenuItems[index].el.scrollIntoView({ block: 'nearest' });
+  playSound('focus');
+}
+
+function createDepth2Item(label, icon, onclick) {
+  const div = document.createElement('div');
+  div.className = 'menu-item';
+  div.innerHTML = `
+    <div class="item-left">
+      ${icon ? `<span class="item-icon">${icon}</span>` : ''}
+      <span>${label}</span>
+    </div>
+  `;
+  const idx = depth2MenuItems.length;
+  div.onclick = onclick;
+  div.onmouseenter = () => focusDepth2Item(idx);
+  depth2MenuItems.push({ el: div, onclick, disabled: false });
+  return div;
+}
+
+function openSubMenu(submenuKey) {
+  const subItems = NPC_SUBMENUS[submenuKey] || SELF_SUBMENUS[submenuKey];
+  if (!subItems) return;
+
+  depth1FocusIndex = interactFocusIndex;
+  interactDepth = 2;
+  depth2MenuItems = [];
+  depth2FocusIndex = -1;
+
+  // Remove focused from depth-1, apply depth1-selected
+  interactMenuItems.forEach(m => {
+    m.el.classList.remove('focused');
+    m.el.removeAttribute('data-key');
+  });
+  if (depth1FocusIndex >= 0 && interactMenuItems[depth1FocusIndex]) {
+    interactMenuItems[depth1FocusIndex].el.classList.add('depth1-selected');
+  }
+
+  // Show depth-2 panel
+  document.getElementById('d2-header').textContent = submenuKey;
+  const d2Items = document.getElementById('d2-items');
+  d2Items.innerHTML = '';
+
+  const targetName = currentInteractTarget?.userData?.name || '';
+  subItems.forEach(sub => {
+    d2Items.appendChild(createDepth2Item(sub.label, sub.icon, () => {
+      closeAllMenus();
+      showToast(`${targetName}: ${sub.label}`);
+    }));
+  });
+
+  document.getElementById('interact-depth2').style.display = 'block';
+  document.getElementById('interaction-menu').classList.add('depth2-open');
+  updateInteractHint();
+  if (interactInputMethod !== 'mouse') focusDepth2Item(0);
+}
+
+function closeSubMenu() {
+  if (interactDepth !== 2) return;
+  interactDepth = 1;
+  depth2MenuItems = [];
+  depth2FocusIndex = -1;
+
+  // Clean up depth1-selected
+  interactMenuItems.forEach(m => m.el.classList.remove('depth1-selected'));
+
+  // Hide depth-2 panel
+  document.getElementById('interact-depth2').style.display = 'none';
+  document.getElementById('interaction-menu').classList.remove('depth2-open');
+
+  // Restore depth-1 focus
+  updateInteractHint();
+  if (interactInputMethod !== 'mouse') focusInteractItem(depth1FocusIndex);
+}
+
+function openSelfSubMenu(submenuKey) {
+  openSubMenu(submenuKey);
+}
+
+function rebuildObjectMenu(obj) {
+  interactMenuItems = [];
+  document.getElementById('interact-subtitle').textContent = '사물';
+  document.getElementById('interact-title').textContent = obj.userData.name;
+  const items = document.getElementById('interact-items');
+  items.innerHTML = '';
+
+  obj.userData.interactions.forEach(action => {
+    const icon = ACTION_ICONS[action] || '✦';
+    items.appendChild(createMenuItem(action, icon, () => {
+      closeAllMenus();
+      showToast(`${obj.userData.name}: ${action}`);
+    }));
+  });
+  updateInteractHint();
+}
+
+function rebuildNPCMenu(npc) {
+  interactMenuItems = [];
+  document.getElementById('interact-subtitle').textContent = 'NPC';
+  document.getElementById('interact-title').textContent = npc.userData.name;
+  const items = document.getElementById('interact-items');
+  items.innerHTML = '';
+
+  const npcItems = [
+    { label: '그룹', icon: '👥', sub: '그룹' },
+    { label: '개인 행동', icon: '🙋', sub: '개인 행동' },
+    { label: '스마트폰', icon: '📱', sub: '스마트폰' },
+    { label: '상호 행동', icon: '🤝', sub: '상호 행동' },
+  ];
+
+  npcItems.forEach(item => {
+    items.appendChild(createMenuItem(item.label, item.icon, () => {
+      openSubMenu(item.sub);
+    }, false, item.sub));
+  });
+
+  const dialogue = npc.userData.dialogues[Math.floor(Math.random() * npc.userData.dialogues.length)];
+  items.appendChild(createMenuItem(`"${dialogue}"`, '💭', null, true));
+  updateInteractHint();
+}
+
+function openObjectMenu(obj, method) {
+  playSound('open');
+  state.interactionMenuOpen = true;
+  currentInteractTarget = obj;
+  interactDepth = 1;
+  interactInputMethod = method || 'keyboard';
+  rebuildObjectMenu(obj);
+  document.getElementById('interaction-menu').style.display = 'block';
+  if (interactInputMethod !== 'mouse') focusInteractItem(0);
+}
+
+function openNPCMenu(npc, method) {
+  playSound('open');
+  state.interactionMenuOpen = true;
+  currentInteractTarget = npc;
+  interactDepth = 1;
+  interactInputMethod = method || 'keyboard';
+  rebuildNPCMenu(npc);
+  document.getElementById('interaction-menu').style.display = 'block';
+  if (interactInputMethod !== 'mouse') focusInteractItem(0);
+}
+
+// ─── Self-Interaction Menu ───
+const SELF_SUBMENUS = {
+  '그룹': [
+    { label: '파티 만들기', icon: '🎉' },
+    { label: '파티 해산', icon: '🚶' },
+  ],
+  '개인 행동': [
+    { label: '춤추기', icon: '💃' },
+    { label: '앉기', icon: '🪑' },
+    { label: '스트레칭', icon: '🧘' },
+    { label: '손흔들기', icon: '👋' },
+  ],
+  '스마트폰': [
+    { label: '스마트폰 보기', icon: '📱' },
+    { label: '셀카 찍기', icon: '🤳' },
+    { label: '음악 듣기', icon: '🎵' },
+  ],
+  '셀프 행동': [
+    { label: '앉아서 신문읽기', icon: '📰' },
+    { label: '불러모으기', icon: '📢' },
+    { label: '명상하기', icon: '🧘' },
+    { label: '하늘 보기', icon: '🌙' },
+  ],
+};
+
+function rebuildSelfMenu() {
+  interactMenuItems = [];
+  document.getElementById('interact-subtitle').textContent = '셀프';
+  document.getElementById('interact-title').textContent = '나';
+  const items = document.getElementById('interact-items');
+  items.innerHTML = '';
+
+  const selfItems = [
+    { label: '그룹', icon: '👥', sub: '그룹' },
+    { label: '개인 행동', icon: '🙋', sub: '개인 행동' },
+    { label: '스마트폰', icon: '📱', sub: '스마트폰' },
+    { label: '셀프 행동', icon: '🤝', sub: '셀프 행동' },
+  ];
+
+  selfItems.forEach(item => {
+    items.appendChild(createMenuItem(item.label, item.icon, () => {
+      openSelfSubMenu(item.sub);
+    }, false, item.sub));
+  });
+  updateInteractHint();
+}
+
+function openSelfMenu(method) {
+  state.interactionMenuOpen = true;
+  currentInteractTarget = player;
+  interactDepth = 1;
+  interactInputMethod = method || 'keyboard';
+  rebuildSelfMenu();
+  document.getElementById('interaction-menu').style.display = 'block';
+  if (interactInputMethod !== 'mouse') focusInteractItem(0);
+}
+
+// ─── Radial Menu ───
+let radialFocusIndex = -1;
+let radialInputMethod = 'keyboard'; // 'keyboard' | 'mouse' | 'controller'
+
+// Action descriptions for center display
+const ACTION_DESCS = {
+  build: '건축 모드에 진입합니다',
+  charCustom: '캐릭터 외형을 변경합니다',
+  phone: '스마트폰을 엽니다',
+  bag: '소지품을 확인합니다',
+  emote_happy: '행복한 감정을 표현합니다',
+  emote_sad: '슬픈 감정을 표현합니다',
+  emote_angry: '화난 감정을 표현합니다',
+  emote_love: '사랑 표현을 합니다',
+  emote_surprise: '놀란 표정을 짓습니다',
+  emote_think: '생각하는 표정을 짓습니다',
+  emote_wave: '인사를 합니다',
+  emote_thumbsup: '좋아요 표현을 합니다',
+  motion_dance: '신나게 춤을 춥니다',
+  motion_jump: '제자리에서 점프합니다',
+  motion_clap: '박수를 칩니다',
+  motion_sit: '바닥에 앉습니다',
+  motion_wave: '손을 흔들어 인사합니다',
+  cloth_summer: '시원한 여름 복장으로 갈아입습니다',
+  cloth_winter: '따뜻한 겨울 복장으로 갈아입습니다',
+  self_phone: '스마트폰을 꺼내 확인합니다',
+  self_newspaper: '앉아서 신문을 읽습니다',
+  self_gather: '주변 사람들을 불러모읍니다',
+};
+
+function buildRadialMenu() {
+  const container = document.getElementById('radial-menu');
+  container.querySelectorAll('.radial-slot').forEach(s => s.remove());
+
+  const cx = 280, cy = 280, radius = 215; // ring center, icons on ring
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(angle) * radius - 22;
+    const y = cy + Math.sin(angle) * radius - 22;
+
+    const slot = document.createElement('div');
+    slot.className = 'radial-slot';
+    if (i === radialFocusIndex) slot.classList.add('focused');
+    slot.style.left = x + 'px';
+    slot.style.top = y + 'px';
+
+    const data = radialSlots[i];
+    const isEmpty = !data.actionId;
+    if (isEmpty) {
+      slot.classList.add('empty');
+      slot.innerHTML = `<span class="slot-icon">○</span>`;
+    } else {
+      slot.innerHTML = `<span class="slot-icon">${data.icon}</span>`;
+    }
+
+    // Key hint: keyboard & mouse mode
+    if (radialInputMethod === 'keyboard' || radialInputMethod === 'mouse') {
+      const hint = document.createElement('span');
+      hint.className = 'slot-key-hint';
+      if (radialFocusIndex >= 0) {
+        // Focused: show action key on focused slot only
+        if (i === radialFocusIndex) {
+          if (radialInputMethod === 'mouse') {
+            hint.innerHTML = `<svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="1" width="12" height="16" rx="6" stroke="white" stroke-width="1.5" fill="none"/>
+              <line x1="7" y1="1" x2="7" y2="7" stroke="white" stroke-width="1"/>
+              <rect x="5.5" y="3" width="3" height="4.5" rx="1.5" fill="white"/>
+            </svg>`;
+            hint.title = '휠클릭';
+          } else {
+            hint.textContent = 'F';
+          }
+        } else {
+          hint.style.display = 'none';
+        }
+      } else if (radialInputMethod === 'keyboard') {
+        // Keyboard, no focus: show [1]~[8]
+        hint.textContent = i + 1;
+      } else {
+        // Mouse, no focus: hide
+        hint.style.display = 'none';
+      }
+      // Position hint at outer edge
+      const hintAngle = (i / 8) * Math.PI * 2 - Math.PI / 2;
+      const hintR = 42;
+      hint.style.left = (22 + Math.cos(hintAngle) * hintR - 8) + 'px';
+      hint.style.top = (22 + Math.sin(hintAngle) * hintR - 8) + 'px';
+      slot.appendChild(hint);
+    }
+    // Slots are pointer-events:none; SVG sectors handle all interaction
+    container.appendChild(slot);
+  }
+
+  // Update center content
+  updateRadialCenter();
+  // Update sector highlight
+  updateRadialSector();
+}
+
+function updateRadialCenter() {
+  const titleEl = document.getElementById('radial-center-title');
+  const descEl = document.getElementById('radial-center-desc');
+  const hintEl = document.getElementById('radial-center-hint');
+
+  if (radialFocusIndex >= 0) {
+    const data = radialSlots[radialFocusIndex];
+    if (data.actionId) {
+      titleEl.textContent = data.label;
+      descEl.textContent = ACTION_DESCS[data.actionId] || '';
+    } else {
+      titleEl.textContent = '비어있음';
+      descEl.textContent = '커스텀 모드에서 설정하세요';
+    }
+    hintEl.textContent = '';
+  } else {
+    titleEl.textContent = 'Radial Menu';
+    descEl.textContent = '';
+    // Show hint based on input method
+    if (radialInputMethod === 'keyboard') {
+      hintEl.textContent = '1 - 8';
+    } else if (radialInputMethod === 'mouse') {
+      hintEl.textContent = '⟳'; // wheel icon
+    } else {
+      hintEl.textContent = 'Ⓛ'; // controller L
+    }
+  }
+}
+
+function sectorArcPath(cx, cy, outerR, innerR, index) {
+  const sliceAngle = Math.PI * 2 / 8;
+  const startAngle = (index / 8) * Math.PI * 2 - Math.PI / 2 - sliceAngle / 2;
+  const endAngle = startAngle + sliceAngle;
+  const x1o = cx + Math.cos(startAngle) * outerR;
+  const y1o = cy + Math.sin(startAngle) * outerR;
+  const x2o = cx + Math.cos(endAngle) * outerR;
+  const y2o = cy + Math.sin(endAngle) * outerR;
+  const x1i = cx + Math.cos(endAngle) * innerR;
+  const y1i = cy + Math.sin(endAngle) * innerR;
+  const x2i = cx + Math.cos(startAngle) * innerR;
+  const y2i = cy + Math.sin(startAngle) * innerR;
+  return `M ${x1o} ${y1o} A ${outerR} ${outerR} 0 0 1 ${x2o} ${y2o} L ${x1i} ${y1i} A ${innerR} ${innerR} 0 0 0 ${x2i} ${y2i} Z`;
+}
+
+function updateRadialSector() {
+  const sectorEl = document.getElementById('radial-sector');
+  const size = 560;
+  const cx = size / 2, cy = size / 2;
+  const outerR = size / 2 - 1;
+  const innerR = size * 0.25;
+  const sliceAngle = Math.PI * 2 / 8;
+
+  // Remove old event-attached SVG
+  sectorEl.innerHTML = '';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+  svg.style.width = '100%';
+  svg.style.height = '100%';
+
+  // Draw 8 interactive sector wedges (transparent hit areas)
+  const sectorPaths = [];
+  for (let i = 0; i < 8; i++) {
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', sectorArcPath(cx, cy, outerR, innerR, i));
+    path.setAttribute('fill', i === radialFocusIndex ? 'rgba(120,200,255,0.2)' : 'transparent');
+    path.style.cursor = 'pointer';
+    path.style.pointerEvents = 'all';
+    sectorPaths.push(path);
+
+    // Hover → update focus visually without rebuilding
+    path.addEventListener('mouseenter', () => {
+      radialFocusIndex = i;
+      radialInputMethod = 'mouse';
+      // Update sector fills
+      sectorPaths.forEach((p, j) => {
+        p.setAttribute('fill', j === i ? 'rgba(120,200,255,0.2)' : 'transparent');
+      });
+      // Update slot highlights
+      document.querySelectorAll('#radial-menu .radial-slot').forEach((s, j) => {
+        s.classList.toggle('focused', j === i);
+      });
+      // Update center text
+      updateRadialCenter();
+    });
+
+    // Left-click → direct execute
+    path.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      executeRadialAction(i);
+    });
+
+    svg.appendChild(path);
+  }
+
+  // Draw 8 divider lines
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 - Math.PI / 2 - sliceAngle / 2;
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('x1', cx + Math.cos(angle) * innerR);
+    line.setAttribute('y1', cy + Math.sin(angle) * innerR);
+    line.setAttribute('x2', cx + Math.cos(angle) * outerR);
+    line.setAttribute('y2', cy + Math.sin(angle) * outerR);
+    line.setAttribute('stroke', 'rgba(255,255,255,0.07)');
+    line.setAttribute('stroke-width', '1');
+    line.style.pointerEvents = 'none';
+    svg.appendChild(line);
+  }
+
+  // Highlight border lines for focused sector
+  if (radialFocusIndex >= 0) {
+    const startAngle = (radialFocusIndex / 8) * Math.PI * 2 - Math.PI / 2 - sliceAngle / 2;
+    const endAngle = startAngle + sliceAngle;
+    [startAngle, endAngle].forEach(a => {
+      const line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('x1', cx + Math.cos(a) * innerR);
+      line.setAttribute('y1', cy + Math.sin(a) * innerR);
+      line.setAttribute('x2', cx + Math.cos(a) * outerR);
+      line.setAttribute('y2', cy + Math.sin(a) * outerR);
+      line.setAttribute('stroke', 'rgba(180,220,255,0.2)');
+      line.setAttribute('stroke-width', '1.5');
+      line.style.pointerEvents = 'none';
+      svg.appendChild(line);
+    });
+  }
+
+  sectorEl.appendChild(svg);
+}
+
+function updateRadialHint() {
+  const el = document.getElementById('radial-hint');
+  const sep = '<span class="radial-hint-sep">|</span>';
+
+  if (lastInputDevice === 'controller') {
+    el.innerHTML = `
+      <button class="radial-hint-btn" onclick="if(radialFocusIndex>=0)executeRadialAction(radialFocusIndex)"><kbd>A</kbd> 선택</button>${sep}
+      <button class="radial-hint-btn"><kbd>D-pad</kbd> 탐색</button>${sep}
+      <button class="radial-hint-btn" onclick="closeRadialMenu()"><kbd>B</kbd> 닫기</button>${sep}
+      <button class="radial-hint-btn" onclick="openCustomizePanel()"><kbd>Menu</kbd> 커스텀</button>
+    `;
+  } else if (radialInputMethod === 'mouse') {
+    el.innerHTML = `
+      <button class="radial-hint-btn" onclick="if(radialFocusIndex>=0)executeRadialAction(radialFocusIndex)"><kbd>휠클릭</kbd> 선택</button>${sep}
+      <button class="radial-hint-btn"><kbd>휠</kbd> 탐색</button>${sep}
+      <button class="radial-hint-btn" onclick="closeRadialMenu()"><kbd>우클릭</kbd> 닫기</button>${sep}
+      <button class="radial-hint-btn" onclick="openCustomizePanel()"><kbd>Tab</kbd> 커스텀</button>
+    `;
+  } else {
+    el.innerHTML = `
+      <button class="radial-hint-btn"><kbd>1-8</kbd> / <kbd>F</kbd> 선택</button>${sep}
+      <button class="radial-hint-btn"><kbd>방향키</kbd> 탐색</button>${sep}
+      <button class="radial-hint-btn" onclick="closeRadialMenu()"><kbd>Q</kbd> 닫기</button>${sep}
+      <button class="radial-hint-btn" onclick="openCustomizePanel()"><kbd>Tab</kbd> 커스텀</button>
+    `;
+  }
+}
+
+function openRadialMenu(method) {
+  playSound('open');
+  state.radialOpen = true;
+  radialFocusIndex = -1;
+  radialInputMethod = method || 'keyboard';
+  buildRadialMenu();
+  updateRadialHint();
+  document.getElementById('radial-overlay').style.display = 'block';
+  document.getElementById('game-hud').style.opacity = '0';
+  document.getElementById('target-list-panel').style.display = 'none';
+}
+
+function closeRadialMenu() {
+  playSound('close');
+  state.radialOpen = false;
+  radialFocusIndex = -1;
+  document.getElementById('radial-overlay').style.display = 'none';
+  document.getElementById('game-hud').style.opacity = '';
+}
+
+function radialScrollFocus(delta) {
+  radialInputMethod = 'mouse';
+  if (radialFocusIndex < 0) {
+    radialFocusIndex = delta > 0 ? 0 : 7;
+  } else {
+    radialFocusIndex = ((radialFocusIndex + delta) % 8 + 8) % 8;
+  }
+  buildRadialMenu();
+  playSound('focus');
+}
+
+function executeRadialAction(slotIndex) {
+  const slot = radialSlots[slotIndex];
+  const action = ALL_ACTIONS.find(a => a.id === slot.actionId);
+  if (!action) { playSound('error'); return; }
+  playSound('execute');
+  closeRadialMenu();
+
+  switch (action.category) {
+    case 'emote':
+      showEmoji(action.emoji);
+      showToast(`이모트: ${action.label}`);
+      break;
+    case 'motion':
+      startMotion(action.id);
+      showToast(`모션: ${action.label}`);
+      break;
+    case 'clothing':
+      changeClothing(action.id);
+      showToast(`${action.label}`);
+      break;
+    case 'self':
+      executeSelfInteraction(action.id);
+      break;
+    case 'hud':
+      if (action.id === 'build') { togglePanel('build'); }
+      else if (action.id === 'phone') { togglePanel('phone'); }
+      else if (action.id === 'bag') { togglePanel('bag'); }
+      else { showToast(`${action.label} 열기`); }
+      break;
+  }
+}
+
+// ─── Actions ───
+function showEmoji(emoji) {
+  const bubble = document.createElement('div');
+  bubble.className = 'emoji-bubble';
+  bubble.textContent = emoji;
+  document.body.appendChild(bubble);
+
+  function updatePos() {
+    const pos = player.position.clone().add(new THREE.Vector3(0, 2.8, 0));
+    pos.project(camera);
+    bubble.style.left = ((pos.x + 1) / 2 * window.innerWidth) + 'px';
+    bubble.style.top = ((-pos.y + 1) / 2 * window.innerHeight) + 'px';
+  }
+  updatePos();
+  const interval = setInterval(updatePos, 16);
+  setTimeout(() => { bubble.style.opacity = '0'; }, 2000);
+  setTimeout(() => { clearInterval(interval); bubble.remove(); }, 2500);
+}
+
+function startMotion(motionId) {
+  const map = {
+    'motion_dance': 'dance', 'motion_jump': 'jump',
+    'motion_clap': 'clap', 'motion_sit': 'sit', 'motion_wave': 'wave'
+  };
+  state.playerMotion = map[motionId] || 'dance';
+  state.motionTime = 0;
+}
+
+function changeClothing(id) {
+  const colorMap = { 'cloth_summer': 0xff8844, 'cloth_winter': 0x334477 };
+  playerBody.material.color.setHex(colorMap[id] || 0x3366cc);
+  state.playerClothing = id;
+}
+
+function executeSelfInteraction(id) {
+  switch (id) {
+    case 'self_phone':
+      showToast('스마트폰을 꺼내 봅니다...');
+      break;
+    case 'self_newspaper':
+      showToast('앉아서 신문을 읽습니다...');
+      startMotion('motion_sit');
+      break;
+    case 'self_gather':
+      showToast('불러모으기! 주변 캐릭터들에게 알림을 보냅니다.');
+      showNPCAlerts();
+      break;
+  }
+}
+
+function showNPCAlerts() {
+  npcs.forEach(npc => {
+    npc.userData.alertVisible = true;
+    setTimeout(() => { npc.userData.alertVisible = false; }, 3000);
+  });
+}
+
+function updateNPCAlerts() {
+  document.querySelectorAll('.npc-alert').forEach(el => el.remove());
+  npcs.forEach(npc => {
+    if (!npc.userData.alertVisible) return;
+    const pos = npc.position.clone().add(new THREE.Vector3(0, 2.6, 0));
+    pos.project(camera);
+    if (pos.z > 1) return;
+    const el = document.createElement('div');
+    el.className = 'npc-alert';
+    el.textContent = '❗';
+    el.style.left = ((pos.x + 1) / 2 * window.innerWidth) + 'px';
+    el.style.top = ((-pos.y + 1) / 2 * window.innerHeight) + 'px';
+    document.body.appendChild(el);
+  });
+}
+
+// ─── Customize Panel ───
+let customizeSelectedSlot = -1;
+let customizeSelectedAction = null;
+let customizeCategory = 'all';
+let customizeSearch = '';
+let customizeSnapshot = []; // snapshot of slots when entering customize mode
+let customizeDirty = false;  // whether changes have been made
+let confirmPending = false;  // whether confirm dialog is showing
+
+// Default slot config (for reset)
+const DEFAULT_SLOTS = [
+  { actionId: 'build', label: '건축모드', icon: '🏗️' },
+  { actionId: 'charCustom', label: '캐릭터 커스텀', icon: '🎨' },
+  { actionId: 'emote_happy', label: '행복', icon: '😄' },
+  { actionId: 'motion_dance', label: '춤추기', icon: '💃' },
+  { actionId: 'cloth_summer', label: '여름옷', icon: '☀️' },
+  { actionId: 'self_phone', label: '스마트폰', icon: '📱' },
+  { actionId: 'bag', label: '가방', icon: '🎒' },
+  { actionId: 'self_gather', label: '불러모으기', icon: '📢' },
+];
+
+function snapshotSlots() {
+  return radialSlots.map(s => ({ ...s }));
+}
+
+function slotsChanged() {
+  for (let i = 0; i < 8; i++) {
+    if (radialSlots[i].actionId !== customizeSnapshot[i].actionId) return true;
+  }
+  return false;
+}
+
+function openCustomizePanel() {
+  state.customizeOpen = true;
+  closeRadialMenu();
+  customizeSelectedSlot = -1;
+  customizeSelectedAction = null;
+  customizeCategory = 'all';
+  customizeSearch = '';
+  customizeSnapshot = snapshotSlots();
+  customizeDirty = false;
+  confirmPending = false;
+  document.getElementById('customize-panel').style.display = 'block';
+  document.getElementById('customize-hint').style.display = 'block';
+  renderCustomizeRadial();
+  renderCustomizeList();
+  bindCustomizeSearch();
+  bindResetButton();
+}
+
+function closeCustomizePanel() {
+  state.customizeOpen = false;
+  customizeSelectedSlot = -1;
+  customizeSelectedAction = null;
+  confirmPending = false;
+  document.getElementById('customize-panel').style.display = 'none';
+  document.getElementById('customize-hint').style.display = 'none';
+  document.getElementById('customize-confirm').style.display = 'none';
+  hideLongPress();
+}
+
+function tryCloseCustomize() {
+  // Check if dirty — if so, show confirm dialog
+  if (slotsChanged()) {
+    confirmPending = true;
+    document.getElementById('customize-confirm').style.display = 'block';
+  } else {
+    closeCustomizePanel();
+  }
+}
+
+// Confirm dialog buttons
+document.getElementById('confirm-discard').onclick = () => {
+  // Restore snapshot and close
+  for (let i = 0; i < 8; i++) radialSlots[i] = { ...customizeSnapshot[i] };
+  confirmPending = false;
+  closeCustomizePanel();
+  showToast('변경사항이 취소되었습니다');
+};
+document.getElementById('confirm-cancel').onclick = () => {
+  confirmPending = false;
+  document.getElementById('customize-confirm').style.display = 'none';
+};
+
+// Enter long-press to confirm
+let enterPressStart = 0;
+let enterPressTimer = null;
+const LONGPRESS_DURATION = 800; // ms
+
+function startEnterLongPress() {
+  enterPressStart = performance.now();
+  document.getElementById('longpress-bar').style.display = 'block';
+  document.getElementById('longpress-label').style.display = 'block';
+  document.getElementById('longpress-fill').style.width = '0%';
+
+  function tick() {
+    const elapsed = performance.now() - enterPressStart;
+    const pct = Math.min(100, (elapsed / LONGPRESS_DURATION) * 100);
+    document.getElementById('longpress-fill').style.width = pct + '%';
+
+    if (pct >= 100) {
+      // Long press completed
+      hideLongPress();
+      closeCustomizePanel();
+      showToast('커스텀 저장 완료!');
+      return;
+    }
+    enterPressTimer = requestAnimationFrame(tick);
+  }
+  enterPressTimer = requestAnimationFrame(tick);
+}
+
+function cancelEnterLongPress() {
+  if (enterPressTimer) cancelAnimationFrame(enterPressTimer);
+  enterPressTimer = null;
+  enterPressStart = 0;
+  hideLongPress();
+}
+
+function hideLongPress() {
+  document.getElementById('longpress-bar').style.display = 'none';
+  document.getElementById('longpress-label').style.display = 'none';
+  document.getElementById('longpress-fill').style.width = '0%';
+}
+
+let customizeHoverSlot = -1; // slot being hovered (separate from selected)
+
+function renderCustomizeRadial() {
+  const container = document.getElementById('customize-radial');
+  container.querySelectorAll('.radial-slot').forEach(s => s.remove());
+
+  const actionSelected = customizeSelectedAction !== null;
+  const cx = 280, cy = 280, radius = 215;
+
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(angle) * radius - 22;
+    const y = cy + Math.sin(angle) * radius - 22;
+
+    const slot = document.createElement('div');
+    slot.className = 'radial-slot';
+    if (i === customizeSelectedSlot) slot.classList.add('selected');
+
+    // When an action is selected in the list, all slots glow as "droppable"
+    if (actionSelected) {
+      slot.style.filter = 'brightness(1.3)';
+      slot.style.boxShadow = '0 0 12px rgba(100,180,255,0.4)';
+      slot.style.border = '2px solid rgba(100,180,255,0.5)';
+      slot.style.borderRadius = '50%';
+      slot.style.background = 'rgba(100,180,255,0.08)';
+    }
+
+    const data = radialSlots[i];
+    const isEmpty = !data.actionId;
+
+    if (isEmpty) {
+      slot.classList.add('empty');
+      slot.innerHTML = `<span class="slot-icon">${actionSelected ? '+' : '○'}</span>`;
+    } else {
+      slot.innerHTML = `<span class="slot-icon">${data.icon}</span>`;
+    }
+
+    slot.style.left = x + 'px';
+    slot.style.top = y + 'px';
+
+    slot.onclick = () => {
+      customizeSelectedSlot = (customizeSelectedSlot === i) ? -1 : i;
+      tryAssign();
+      renderCustomizeRadial();
+      renderCustomizeList();
+    };
+
+    slot.onmouseenter = () => {
+      customizeHoverSlot = i;
+      updateCustomizeCenter();
+      updateCustomizeSector();
+    };
+    slot.onmouseleave = () => {
+      customizeHoverSlot = -1;
+      updateCustomizeCenter();
+      updateCustomizeSector();
+    };
+
+    container.appendChild(slot);
+  }
+
+  updateCustomizeCenter();
+  updateCustomizeSector();
+}
+
+function updateCustomizeCenter() {
+  const centerEl = document.getElementById('customize-radial-center');
+  const titleEl = centerEl.querySelector('.cust-title');
+  const descEl = centerEl.querySelector('.cust-desc');
+
+  // Priority: hover > selected > empty state
+  const displaySlot = customizeHoverSlot >= 0 ? customizeHoverSlot : customizeSelectedSlot;
+
+  if (displaySlot >= 0) {
+    const data = radialSlots[displaySlot];
+    if (data.actionId) {
+      titleEl.textContent = data.label;
+      descEl.textContent = ACTION_DESCS[data.actionId] || `슬롯 ${displaySlot + 1}`;
+    } else {
+      titleEl.textContent = '비어있음';
+      descEl.textContent = `슬롯 ${displaySlot + 1}`;
+    }
+  } else {
+    titleEl.textContent = '커스텀 모드';
+    descEl.textContent = customizeSelectedAction !== null ? '슬롯을 클릭하여 배정하세요' : '슬롯 또는 액션을 선택하세요';
+  }
+}
+
+function updateCustomizeSector() {
+  const sectorEl = document.getElementById('customize-sector');
+  // Show sector for hover or selected slot
+  const displaySlot = customizeHoverSlot >= 0 ? customizeHoverSlot : customizeSelectedSlot;
+
+  if (displaySlot < 0) {
+    // If action selected, highlight all 8 sectors lightly
+    if (customizeSelectedAction !== null) {
+      let svg = `<svg viewBox="0 0 560 560" width="560" height="560">`;
+      for (let i = 0; i < 8; i++) {
+        svg += `<path d="${sectorArcPath(280, 280, 280, 140, i)}" fill="rgba(100,180,255,0.06)" stroke="rgba(100,180,255,0.1)" stroke-width="0.5"/>`;
+      }
+      svg += `</svg>`;
+      sectorEl.innerHTML = svg;
+    } else {
+      sectorEl.innerHTML = '';
+    }
+    return;
+  }
+
+  const isHover = customizeHoverSlot >= 0;
+  const color = isHover ? 'rgba(100,180,255,0.2)' : 'rgba(100,140,255,0.18)';
+  const stroke = isHover ? 'rgba(100,180,255,0.4)' : 'rgba(100,140,255,0.3)';
+  const path = sectorArcPath(280, 280, 280, 140, displaySlot);
+  sectorEl.innerHTML = `<svg viewBox="0 0 560 560" width="560" height="560">
+    <path d="${path}" fill="${color}" stroke="${stroke}" stroke-width="1.5"/>
+  </svg>`;
+}
+
+function renderCustomizeList() {
+  const catBar = document.getElementById('customize-cat-bar');
+  catBar.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const chip = document.createElement('div');
+    chip.className = 'category-chip' + (customizeCategory === cat.id ? ' active' : '');
+    chip.innerHTML = `${cat.icon} ${cat.label}`;
+    chip.onclick = () => { customizeCategory = cat.id; renderCustomizeList(); };
+    catBar.appendChild(chip);
+  });
+
+  const listEl = document.getElementById('customize-action-list');
+  listEl.innerHTML = '';
+
+  // "없음" item
+  const noneItem = document.createElement('div');
+  noneItem.className = 'action-list-item' + (customizeSelectedAction === '__none__' ? ' selected' : '');
+  noneItem.innerHTML = `
+    <span class="action-icon" style="opacity:0.4">🚫</span>
+    <span class="action-label">없음 (슬롯 비우기)</span>
+  `;
+  noneItem.onclick = () => {
+    customizeSelectedAction = (customizeSelectedAction === '__none__') ? null : '__none__';
+    tryAssign();
+    renderCustomizeList();
+    renderCustomizeRadial();
+  };
+  listEl.appendChild(noneItem);
+
+  let filtered = ALL_ACTIONS;
+  if (customizeCategory !== 'all') filtered = filtered.filter(a => a.category === customizeCategory);
+  if (customizeSearch) filtered = filtered.filter(a => a.label.toLowerCase().includes(customizeSearch.toLowerCase()));
+
+  const catLabelMap = { hud: 'HUD', emote: '이모트', motion: '모션', clothing: '옷', self: '셀프' };
+
+  filtered.forEach(action => {
+    const item = document.createElement('div');
+    item.className = 'action-list-item' + (customizeSelectedAction === action.id ? ' selected' : '');
+    item.innerHTML = `
+      <span class="action-icon">${action.icon}</span>
+      <span class="action-label">${action.label}</span>
+      <span class="action-cat">${catLabelMap[action.category] || action.category}</span>
+    `;
+    item.onclick = () => {
+      customizeSelectedAction = (customizeSelectedAction === action.id) ? null : action.id;
+      tryAssign();
+      renderCustomizeList();
+      renderCustomizeRadial();
+    };
+    listEl.appendChild(item);
+  });
+}
+
+function tryAssign() {
+  if (customizeSelectedSlot < 0 || customizeSelectedAction === null) return;
+
+  if (customizeSelectedAction === '__none__') {
+    radialSlots[customizeSelectedSlot] = { actionId: null, label: '비어있음', icon: '' };
+  } else {
+    const action = ALL_ACTIONS.find(a => a.id === customizeSelectedAction);
+    if (action) {
+      radialSlots[customizeSelectedSlot] = { actionId: action.id, label: action.label, icon: action.icon };
+    }
+  }
+
+  customizeDirty = true;
+  showToast(`슬롯 ${customizeSelectedSlot + 1} 업데이트됨`);
+  customizeSelectedSlot = -1;
+  customizeSelectedAction = null;
+}
+
+function bindCustomizeSearch() {
+  const searchInput = document.getElementById('customize-search');
+  searchInput.value = customizeSearch;
+  searchInput.oninput = (e) => {
+    customizeSearch = e.target.value;
+    renderCustomizeList();
+  };
+}
+
+function bindResetButton() {
+  document.getElementById('btn-reset').onclick = () => {
+    for (let i = 0; i < 8; i++) radialSlots[i] = { ...DEFAULT_SLOTS[i] };
+    customizeDirty = true;
+    customizeSelectedSlot = -1;
+    customizeSelectedAction = null;
+    renderCustomizeRadial();
+    renderCustomizeList();
+    showToast('슬롯이 초기값으로 리셋되었습니다');
+  };
+}
+
+// ─── Toast ───
+function showToast(msg) {
+  const toast = document.getElementById('action-toast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  toast.style.opacity = '1';
+  setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+  setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
+
+// ─── Close All ───
+function closeAllMenus() {
+  playSound('close');
+  state.interactionMenuOpen = false;
+  state.submenuOpen = false;
+  interactDepth = 1;
+  depth2MenuItems = [];
+  depth2FocusIndex = -1;
+  document.getElementById('interaction-menu').style.display = 'none';
+  document.getElementById('interaction-menu').classList.remove('depth2-open');
+  document.getElementById('interact-depth2').style.display = 'none';
+  document.getElementById('submenu-panel').style.display = 'none';
+}
+
+// ─── NPC Idle Animation ───
+function animateNPCs(dt) {
+  npcIdleTime += dt;
+  npcs.forEach((npc, i) => {
+    const offset = i * 2.1;
+    npc.children[0].position.y = 1.1 + Math.sin(npcIdleTime * 1.5 + offset) * 0.03;
+
+    // Patrol movement
+    if (npc.userData.patrol) {
+      const p = npc.userData.patrol;
+      const target = p.points[p.index];
+      const dx = target.x - npc.position.x;
+      const dz = target.z - npc.position.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+
+      if (dist < 0.3) {
+        // Reached waypoint, go to next
+        p.index = (p.index + 1) % p.points.length;
+      } else {
+        // Move toward waypoint
+        const step = p.speed * dt;
+        npc.position.x += (dx / dist) * step;
+        npc.position.z += (dz / dist) * step;
+        // Face movement direction
+        npc.rotation.y = Math.atan2(dx, dz);
+      }
+    } else {
+      // Idle look-around for non-patrol NPCs
+      npc.rotation.y = Math.sin(npcIdleTime * 0.3 + offset) * 0.5;
+    }
+  });
+}
+
+// ─── Input: Keyboard ───
+document.addEventListener('keydown', (e) => {
+  state.keys[e.code] = true;
+  setInputDevice('keyboard');
+
+  if (e.code === 'Escape') {
+    if (confirmPending) {
+      // Close confirm dialog, stay in customize
+      confirmPending = false;
+      document.getElementById('customize-confirm').style.display = 'none';
+      return;
+    }
+    if (state.customizeOpen) { tryCloseCustomize(); return; }
+    if (state.radialOpen) { closeRadialMenu(); return; }
+    if (state.interactionMenuOpen || state.submenuOpen) { closeAllMenus(); return; }
+    // Close any open panel, or open game menu
+    if (isAnyPanelOpen()) {
+      ['phone','bag','build','charcustom','photo','menu'].forEach(p => {
+        activePanels[p] = false;
+        const el = document.getElementById(p === 'menu' ? 'game-menu' : p + '-panel');
+        if (p === 'menu') el.classList.remove('show');
+        else el.style.display = 'none';
+      });
+      return;
+    }
+    // Nothing else open → toggle game menu
+    togglePanel('menu');
+    return;
+  }
+
+  // HUD panel keys (take priority when panels are open)
+  if (activePanels.menu) return; // block all keys in game menu
+
+  // U — toggle HUD visibility
+  if (e.code === 'KeyU' && !state.interactionMenuOpen && !state.radialOpen && !state.customizeOpen) {
+    toggleHud();
+    return;
+  }
+  // C — self-interaction menu
+  if (e.code === 'KeyC' && !state.radialOpen && !state.customizeOpen) {
+    if (state.interactionMenuOpen && currentInteractTarget === player) {
+      closeAllMenus();
+    } else {
+      if (state.interactionMenuOpen) closeAllMenus();
+      openSelfMenu('keyboard');
+    }
+    return;
+  }
+  // B — bag
+  if (e.code === 'KeyB' && !state.interactionMenuOpen && !state.radialOpen && !state.customizeOpen) {
+    togglePanel('bag');
+    return;
+  }
+  // P — phone
+  if (e.code === 'KeyP' && !state.interactionMenuOpen && !state.radialOpen && !state.customizeOpen) {
+    togglePanel('phone');
+    return;
+  }
+  // I — build mode
+  if (e.code === 'KeyI' && !state.interactionMenuOpen && !state.radialOpen && !state.customizeOpen) {
+    togglePanel('build');
+    return;
+  }
+  // V — cycle target
+  if (e.code === 'KeyV' && !state.interactionMenuOpen && !state.radialOpen && !state.customizeOpen) {
+    cycleTarget();
+    return;
+  }
+  // / — developer mode toggle
+  if (e.code === 'Slash' && !state.interactionMenuOpen && !state.radialOpen && !state.customizeOpen) {
+    toggleDevMode();
+    return;
+  }
+
+  // +/- keys — zoom in/out
+  if ((e.code === 'Equal' || e.code === 'NumpadAdd') && !state.radialOpen && !state.customizeOpen) {
+    camDistance = Math.max(3, Math.min(20, camDistance - 0.5));
+    return;
+  }
+  if ((e.code === 'Minus' || e.code === 'NumpadSubtract') && !state.radialOpen && !state.customizeOpen) {
+    camDistance = Math.max(3, Math.min(20, camDistance + 0.5));
+    return;
+  }
+
+  // Customize mode keys
+  if (state.customizeOpen) {
+    if (confirmPending) return;
+
+    // Q — back out of customize
+    if (e.code === 'KeyQ') {
+      tryCloseCustomize();
+      return;
+    }
+
+    // Del — clear selected slot
+    if (e.code === 'Delete' && customizeSelectedSlot >= 0) {
+      radialSlots[customizeSelectedSlot] = { actionId: null, label: '비어있음', icon: '' };
+      customizeDirty = true;
+      showToast(`슬롯 ${customizeSelectedSlot + 1} 비워짐`);
+      customizeSelectedSlot = -1;
+      customizeSelectedAction = null;
+      renderCustomizeRadial();
+      renderCustomizeList();
+    }
+    // F3 — focus search input
+    if (e.code === 'F3') {
+      e.preventDefault();
+      document.getElementById('customize-search').focus();
+    }
+    // Enter — start long-press
+    if (e.code === 'Enter' && !enterPressStart) {
+      e.preventDefault();
+      startEnterLongPress();
+    }
+    return;
+  }
+
+  // Radial menu keys — mark as pressed, actual open/close on keyup
+  if (e.code === 'Quote' || e.code === 'BracketLeft' || e.code === 'ControlLeft' || e.code === 'ControlRight' || e.code === 'KeyE' || e.code === 'KeyX') {
+    if (!radialKeyData) radialKeyData = { code: e.code, combo: false };
+    return;
+  }
+  // If another key pressed while radial key held → mark as combo
+  if (radialKeyData) radialKeyData.combo = true;
+
+  if (state.radialOpen && e.code === 'KeyQ') {
+    closeRadialMenu();
+    return;
+  }
+
+  if (e.code === 'Tab' && state.radialOpen) {
+    e.preventDefault();
+    openCustomizePanel();
+    return;
+  }
+
+  // Enter/F in radial menu → execute focused slot
+  if (state.radialOpen && (e.code === 'Enter' || e.code === 'KeyF') && radialFocusIndex >= 0) {
+    e.preventDefault();
+    executeRadialAction(radialFocusIndex);
+    return;
+  }
+
+  if (state.radialOpen && e.code.startsWith('Digit')) {
+    const num = parseInt(e.code.replace('Digit', ''));
+    if (num >= 1 && num <= 8) executeRadialAction(num - 1);
+    return;
+  }
+
+  // Arrow keys → radial menu directional focus (joystick-like)
+  if (state.radialOpen && (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
+    e.preventDefault();
+    const up = state.keys['ArrowUp'], down = state.keys['ArrowDown'];
+    const left = state.keys['ArrowLeft'], right = state.keys['ArrowRight'];
+    // Map to angle: atan2(x, -y) where right=+x, down=+y
+    let dx = 0, dy = 0;
+    if (up) dy -= 1;
+    if (down) dy += 1;
+    if (left) dx -= 1;
+    if (right) dx += 1;
+    if (dx === 0 && dy === 0) return;
+    // Angle from top, clockwise
+    const angle = ((Math.atan2(dx, -dy) / Math.PI * 180) + 360) % 360;
+    // Each slot is 45° wide, slot 0 centered at 0°
+    const slotIndex = Math.round(angle / 45) % 8;
+    radialFocusIndex = slotIndex;
+    radialInputMethod = 'keyboard';
+    buildRadialMenu();
+    playSound('focus');
+    return;
+  }
+
+  // Interaction menu: consume all keys (block movement & camera)
+  if (state.interactionMenuOpen) {
+    // Clear movement keys so character doesn't move
+    state.keys['KeyW'] = false; state.keys['KeyA'] = false;
+    state.keys['KeyS'] = false; state.keys['KeyD'] = false;
+    state.keys['ArrowUp'] = false; state.keys['ArrowDown'] = false;
+    state.keys['ArrowLeft'] = false; state.keys['ArrowRight'] = false;
+    // Q — depth 2: go back; depth 1: close
+    if (e.code === 'KeyQ') {
+      if (interactDepth === 2) { closeSubMenu(); }
+      else { closeAllMenus(); }
+      return;
+    }
+
+    // V — loop focus downward
+    if (e.code === 'KeyV') {
+      e.preventDefault();
+      if (interactDepth === 2 && depth2MenuItems.length > 0) {
+        focusDepth2Item((depth2FocusIndex + 1) % depth2MenuItems.length);
+      } else if (interactMenuItems.length > 0) {
+        let next = (interactFocusIndex + 1) % interactMenuItems.length;
+        while (interactMenuItems[next].disabled && next !== interactFocusIndex) next = (next + 1) % interactMenuItems.length;
+        if (!interactMenuItems[next].disabled) focusInteractItem(next);
+      }
+      return;
+    }
+
+    const isUp = e.code === 'ArrowUp' || e.code === 'KeyW';
+    const isDown = e.code === 'ArrowDown' || e.code === 'KeyS';
+    const isRight = e.code === 'ArrowRight' || e.code === 'KeyD';
+    const isLeft = e.code === 'ArrowLeft' || e.code === 'KeyA';
+    const isSelect = e.code === 'Enter' || e.code === 'KeyF';
+
+    // Left/A = go back one depth
+    if (isLeft) {
+      e.preventDefault();
+      if (interactDepth === 2) { closeSubMenu(); playSound('close'); }
+      else { playSound('error'); }
+      return;
+    }
+
+    // Right/D = enter submenu (same as select on depth-1 item with submenu)
+    if (isRight) {
+      e.preventDefault();
+      if (interactDepth === 1 && interactFocusIndex >= 0) {
+        const focused = interactMenuItems[interactFocusIndex];
+        if (focused && focused.submenuKey && focused.onclick) { focused.onclick(); playSound('open'); }
+        else { playSound('error'); }
+      } else { playSound('error'); }
+      return;
+    }
+
+    // Up/Down navigation (with loop)
+    if (interactDepth === 2 && depth2MenuItems.length > 0) {
+      if (isUp) {
+        e.preventDefault();
+        if (depth2FocusIndex < 0) { focusDepth2Item(depth2MenuItems.length - 1); }
+        else { focusDepth2Item(depth2FocusIndex <= 0 ? depth2MenuItems.length - 1 : depth2FocusIndex - 1); }
+      }
+      if (isDown) {
+        e.preventDefault();
+        if (depth2FocusIndex < 0) { focusDepth2Item(0); }
+        else { focusDepth2Item((depth2FocusIndex + 1) % depth2MenuItems.length); }
+      }
+      if (isSelect) {
+        e.preventDefault();
+        if (depth2FocusIndex < 0) { playSound('error'); return; }
+        const focused = depth2MenuItems[depth2FocusIndex];
+        if (focused && focused.onclick) { playSound('execute'); focused.onclick(); }
+      }
+    } else if (interactMenuItems.length > 0) {
+      if (isUp) {
+        e.preventDefault();
+        if (interactFocusIndex < 0) { focusInteractItem(interactMenuItems.length - 1); }
+        else {
+          let n = (interactFocusIndex - 1 + interactMenuItems.length) % interactMenuItems.length;
+          let tries = interactMenuItems.length;
+          while (interactMenuItems[n].disabled && tries-- > 0) n = (n - 1 + interactMenuItems.length) % interactMenuItems.length;
+          focusInteractItem(n);
+        }
+      }
+      if (isDown) {
+        e.preventDefault();
+        if (interactFocusIndex < 0) { focusInteractItem(0); }
+        else {
+          let n = (interactFocusIndex + 1) % interactMenuItems.length;
+          let tries = interactMenuItems.length;
+          while (interactMenuItems[n].disabled && tries-- > 0) n = (n + 1) % interactMenuItems.length;
+          focusInteractItem(n);
+        }
+      }
+      if (isSelect) {
+        e.preventDefault();
+        if (interactFocusIndex < 0) { playSound('error'); return; }
+        const focused = interactMenuItems[interactFocusIndex];
+        if (focused && !focused.disabled && focused.onclick) { playSound('execute'); focused.onclick(); }
+        else { playSound('error'); }
+      }
+    }
+    return;
+  }
+
+  if (e.code === 'KeyF' && state.nearObject && !state.interactionMenuOpen && !state.radialOpen) {
+    openObjectMenu(state.nearObject);
+    return;
+  }
+
+  if (e.code === 'KeyG' && state.nearNPC && !state.interactionMenuOpen && !state.radialOpen) {
+    openNPCMenu(state.nearNPC);
+    return;
+  }
+});
+
+let radialKeyData = null; // { code, combo }
+
+document.addEventListener('keyup', (e) => {
+  state.keys[e.code] = false;
+
+  // Radial menu open/close on key release (not combo)
+  if (radialKeyData && e.code === radialKeyData.code) {
+    const wasCombo = radialKeyData.combo;
+    radialKeyData = null;
+    if (!wasCombo) {
+      if (state.radialOpen) {
+        closeRadialMenu();
+      } else if (!state.interactionMenuOpen && !state.customizeOpen) {
+        openRadialMenu('keyboard');
+      }
+    }
+    return;
+  }
+
+  // Cancel Enter long-press on release
+  if (e.code === 'Enter' && state.customizeOpen && enterPressStart) {
+    cancelEnterLongPress();
+  }
+});
+
+// ─── Input: Mouse (no pointer lock) ───
+let clickStartX = 0, clickStartY = 0;
+renderer.domElement.addEventListener('mousedown', (e) => {
+  setInputDevice('mouse');
+  if (state.radialOpen || state.customizeOpen) return;
+  if (e.button === 0) { // Left click
+    clickStartX = e.clientX;
+    clickStartY = e.clientY;
+    if (state.interactionMenuOpen) return; // allow click tracking but skip drag
+    state.leftDragging = true;
+    state.lastMouseX = e.clientX;
+    state.lastMouseY = e.clientY;
+    clickStartX = e.clientX;
+    clickStartY = e.clientY;
+    renderer.domElement.style.cursor = 'grab';
+  } else if (e.button === 2) { // Right click
+    state.rightDragging = true;
+    state.lastMouseX = e.clientX;
+    state.lastMouseY = e.clientY;
+    renderer.domElement.style.cursor = 'crosshair';
+  }
+});
+
+document.addEventListener('mouseup', (e) => {
+  if (e.button === 0) {
+    // Check if it was a click (not a drag) on a hovered object
+    const dx = Math.abs(e.clientX - clickStartX);
+    const dy = Math.abs(e.clientY - clickStartY);
+    if (dx < 5 && dy < 5 && !state.radialOpen && !state.customizeOpen && !isAnyPanelOpen()) {
+      if (hoveredObject) {
+        // Close existing menu first if open
+        if (state.interactionMenuOpen) closeAllMenus();
+        if (hoveredObject.userData && hoveredObject.userData.isPlayer) {
+          openSelfMenu('mouse');
+        } else if (hoveredObject.userData && hoveredObject.userData.isInteractive) {
+          openObjectMenu(hoveredObject, 'mouse');
+        } else if (hoveredObject.userData && hoveredObject.userData.isNPC) {
+          openNPCMenu(hoveredObject, 'mouse');
+        }
+      } else if (state.interactionMenuOpen) {
+        // Clicked empty space — close menu
+        closeAllMenus();
+      }
+    }
+    state.leftDragging = false;
+    renderer.domElement.style.cursor = hoveredObject ? 'pointer' : 'default';
+  }
+  if (e.button === 2) {
+    state.rightDragging = false;
+    renderer.domElement.style.cursor = hoveredObject ? 'pointer' : 'default';
+  }
+});
+
+document.addEventListener('mousemove', (e) => {
+  // Always update hover (for highlighting)
+  updateMouseHover(e.clientX, e.clientY);
+
+  if (state.radialOpen || state.customizeOpen || state.interactionMenuOpen) return;
+
+  const dx = e.clientX - state.lastMouseX;
+  const dy = e.clientY - state.lastMouseY;
+  state.lastMouseX = e.clientX;
+  state.lastMouseY = e.clientY;
+
+  // Right-click drag = camera orbit rotation
+  if (state.rightDragging) {
+    camYaw -= dx * 0.005;
+    camPitch = THREE.MathUtils.clamp(camPitch - dy * 0.005, -1.2, 0.8);
+  }
+
+  // Left-click drag = camera panning
+  if (state.leftDragging) {
+    state.cameraPanned = true;
+    // Pan in camera-local XZ plane
+    const panSpeed = 0.03;
+    const right = new THREE.Vector3(-Math.cos(camYaw), 0, Math.sin(camYaw));
+    const forward = new THREE.Vector3(-Math.sin(camYaw), 0, -Math.cos(camYaw));
+    state.cameraPanOffset.addScaledVector(right, dx * panSpeed);
+    state.cameraPanOffset.addScaledVector(forward, -dy * panSpeed);
+  }
+});
+
+// Right-click: close radial OR start camera drag (prevent context menu)
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  if (activePanels.menu) { togglePanel('menu'); return; }
+  if (state.interactionMenuOpen) {
+    if (interactDepth === 2) { closeSubMenu(); } else { closeAllMenus(); }
+    return;
+  }
+  if (state.radialOpen) closeRadialMenu();
+  if (state.submenuOpen) {
+    state.submenuOpen = false;
+    document.getElementById('submenu-panel').style.display = 'none';
+  }
+});
+
+// Middle mouse button — click+release opens radial, drag does camera pan
+let middleStartX = 0, middleStartY = 0, middleDragging = false;
+document.addEventListener('mousedown', (e) => {
+  if (e.button !== 1) return;
+  e.preventDefault();
+  middleStartX = e.clientX;
+  middleStartY = e.clientY;
+  middleDragging = false;
+});
+document.addEventListener('mousemove', (e) => {
+  if (!(e.buttons & 4)) return; // middle button held
+  const dx = Math.abs(e.clientX - middleStartX);
+  const dy = Math.abs(e.clientY - middleStartY);
+  if (dx > 5 || dy > 5) middleDragging = true;
+});
+document.addEventListener('mouseup', (e) => {
+  if (e.button !== 1) return;
+  e.preventDefault();
+  if (middleDragging) return; // was a drag, not a click
+
+  // Interaction menu: wheel click = select focused item
+  if (state.interactionMenuOpen) {
+    if (interactDepth === 2 && depth2FocusIndex >= 0) {
+      const focused = depth2MenuItems[depth2FocusIndex];
+      if (focused && focused.onclick) focused.onclick();
+    } else if (interactFocusIndex >= 0) {
+      const focused = interactMenuItems[interactFocusIndex];
+      if (focused && !focused.disabled && focused.onclick) focused.onclick();
+    }
+    return;
+  }
+
+  if (state.customizeOpen) return;
+
+  if (!state.radialOpen) {
+    openRadialMenu('mouse');
+  } else {
+    if (radialFocusIndex >= 0) {
+      executeRadialAction(radialFocusIndex);
+    }
+  }
+});
+
+// Wheel scroll — context-dependent
+document.addEventListener('wheel', (e) => {
+  if (state.interactionMenuOpen) {
+    // Scroll through interaction menu items
+    e.preventDefault();
+    const dir = e.deltaY > 0 ? 1 : -1;
+    if (interactDepth === 2 && depth2MenuItems.length > 0) {
+      let next = depth2FocusIndex + dir;
+      if (next < 0) next = 0;
+      if (next >= depth2MenuItems.length) next = depth2MenuItems.length - 1;
+      focusDepth2Item(next);
+    } else if (interactMenuItems.length > 0) {
+      let next = interactFocusIndex < 0 ? 0 : interactFocusIndex + dir;
+      while (next >= 0 && next < interactMenuItems.length && interactMenuItems[next].disabled) next += dir;
+      if (next >= 0 && next < interactMenuItems.length) focusInteractItem(next);
+    }
+  } else if (state.radialOpen) {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 1 : -1;
+    radialScrollFocus(delta);
+  } else {
+    // Zoom
+    const zoomDelta = e.deltaY > 0 ? 0.5 : -0.5;
+    camDistance = Math.max(3, Math.min(20, camDistance + zoomDelta));
+  }
+}, { passive: false });
+
+// Resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ─── HUD Panel System ───
+let hudVisible = true;
+const activePanels = { phone: false, bag: false, build: false, menu: false };
+
+// Make togglePanel global for onclick handlers
+window.togglePanel = togglePanel;
+window.showToast = showToast;
+window.openCustomizePanel = openCustomizePanel;
+window.executeRadialAction = executeRadialAction;
+window.closeRadialMenu = closeRadialMenu;
+// Expose for inline onclick in hints
+Object.defineProperty(window, 'radialFocusIndex', { get: () => radialFocusIndex });
+
+function togglePanel(name) {
+  if (name === 'menu') {
+    activePanels.menu = !activePanels.menu;
+    document.getElementById('game-menu').classList.toggle('show', activePanels.menu);
+    return;
+  }
+  activePanels[name] = !activePanels[name];
+  const el = document.getElementById(name + '-panel');
+  el.style.display = activePanels[name] ? 'block' : 'none';
+
+  // Close other panels (except menu)
+  if (activePanels[name]) {
+    ['phone', 'bag', 'build', 'charcustom', 'photo'].forEach(p => {
+      if (p !== name && activePanels[p]) {
+        activePanels[p] = false;
+        document.getElementById(p + '-panel').style.display = 'none';
+      }
+    });
+  }
+}
+
+function toggleHud() {
+  hudVisible = !hudVisible;
+  document.getElementById('game-hud').classList.toggle('hidden', !hudVisible);
+  showToast(hudVisible ? 'HUD 표시' : 'HUD 숨김');
+}
+
+// Guide panel
+// ─── In-game Tooltip System ───
+{
+  const tip = document.getElementById('game-tooltip');
+  document.addEventListener('mouseover', (e) => {
+    const target = e.target.closest('[data-tooltip]');
+    if (!target) { tip.style.display = 'none'; return; }
+    tip.innerHTML = target.getAttribute('data-tooltip');
+    tip.style.display = 'block';
+
+    const rect = target.getBoundingClientRect();
+    const tipW = tip.offsetWidth;
+    const tipH = tip.offsetHeight;
+
+    // Horizontal: center on button, clamp to viewport
+    let left = rect.left + rect.width / 2 - tipW / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
+
+    // Vertical: prefer above, fall back to below if near top
+    let top;
+    if (rect.top > tipH + 12) {
+      top = rect.top - tipH - 8;
+    } else {
+      top = rect.bottom + 8;
+    }
+    top = Math.max(8, Math.min(top, window.innerHeight - tipH - 8));
+
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  });
+  document.addEventListener('mouseout', (e) => {
+    const target = e.target.closest('[data-tooltip]');
+    if (target) tip.style.display = 'none';
+  });
+}
+
+window.toggleGuide = function() {
+  document.getElementById('guide-panel').classList.toggle('show');
+};
+
+function isAnyPanelOpen() {
+  return activePanels.phone || activePanels.bag || activePanels.build || activePanels.menu || activePanels.charcustom || activePanels.photo;
+}
+
+// Populate phone apps
+const phoneApps = [
+  { icon: '📅', label: '일정', color: 'rgba(80,180,120,0.3)' },
+  { icon: '🏙️', label: '도시 편집', color: 'rgba(80,140,255,0.3)' },
+  { icon: '🚗', label: '드림카', color: 'rgba(100,100,255,0.3)' },
+  { icon: '🛒', label: '포켓 마켓', color: 'rgba(255,100,100,0.3)' },
+  { icon: '📷', label: '카메라', color: 'rgba(150,150,170,0.3)' },
+  { icon: 'Ⓜ', label: '가계부', color: 'rgba(100,200,100,0.3)' },
+  { icon: '🛡️', label: '보험', color: 'rgba(80,120,200,0.3)' },
+  { icon: '🏦', label: '대출', color: 'rgba(60,60,100,0.3)' },
+  { icon: '😊', label: '입양', color: 'rgba(255,180,80,0.3)' },
+  { icon: '✈️', label: '도시 여행', color: 'rgba(80,200,255,0.3)' },
+  { icon: '🏢', label: '사업', color: 'rgba(200,160,100,0.3)' },
+  { icon: '🎓', label: '학교', color: 'rgba(80,160,200,0.3)' },
+  { icon: 'ℹ️', label: '직업', color: 'rgba(80,130,200,0.3)' },
+  { icon: '💬', label: '메시지', color: 'rgba(120,220,80,0.3)' },
+  { icon: '📇', label: '연락처', color: 'rgba(100,200,100,0.3)' },
+];
+{
+  const appsEl = document.getElementById('phone-apps');
+  phoneApps.forEach(app => {
+    const el = document.createElement('div');
+    el.className = 'phone-app';
+    el.innerHTML = `
+      <div class="phone-app-icon" style="background:${app.color}">${app.icon}</div>
+      <span class="phone-app-label">${app.label}</span>
+    `;
+    el.onclick = () => showToast(`${app.label} 열기`);
+    appsEl.appendChild(el);
+  });
+}
+
+// Populate bag
+{
+  const tabs = ['전체', '음식', '도구', '의류', '재료', '기타'];
+  const tabsEl = document.getElementById('bag-tabs');
+  tabs.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'bag-tab' + (i === 0 ? ' active' : '');
+    el.textContent = t;
+    el.onclick = () => {
+      tabsEl.querySelectorAll('.bag-tab').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+    };
+    tabsEl.appendChild(el);
+  });
+  const gridEl = document.getElementById('bag-grid');
+  const sampleItems = ['🍎', '🔑', '📰', '💊', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
+  sampleItems.forEach(item => {
+    const slot = document.createElement('div');
+    slot.className = 'bag-slot' + (item ? ' has-item' : '');
+    slot.textContent = item;
+    gridEl.appendChild(slot);
+  });
+}
+
+// Populate build mode
+{
+  const cats = ['벽', '바닥', '지붕', '문/창', '가구', '조경'];
+  const catsEl = document.getElementById('build-cats');
+  cats.forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'build-cat' + (i === 0 ? ' active' : '');
+    el.textContent = c;
+    el.onclick = () => {
+      catsEl.querySelectorAll('.build-cat').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+    };
+    catsEl.appendChild(el);
+  });
+  const items = [
+    { icon: '🧱', label: '벽돌벽' }, { icon: '🪵', label: '나무벽' },
+    { icon: '🏗️', label: '콘크리트' }, { icon: '🪟', label: '유리벽' },
+    { icon: '🚪', label: '문' }, { icon: '🪜', label: '계단' },
+    { icon: '🪑', label: '의자' }, { icon: '🛋️', label: '소파' },
+    { icon: '🛏️', label: '침대' }, { icon: '🌳', label: '나무' },
+    { icon: '🌺', label: '꽃' }, { icon: '💡', label: '조명' },
+  ];
+  const gridEl = document.getElementById('build-grid');
+  items.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'build-item';
+    el.innerHTML = `<span class="build-icon">${item.icon}</span><span>${item.label}</span>`;
+    el.onclick = () => showToast(`${item.label} 선택`);
+    gridEl.appendChild(el);
+  });
+}
+
+// Populate character custom mode
+{
+  const cats = ['얼굴', '헤어', '상의', '하의', '신발', '악세서리'];
+  const catsEl = document.getElementById('cc-cats');
+  cats.forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'build-cat' + (i === 0 ? ' active' : '');
+    el.textContent = c;
+    el.onclick = () => {
+      catsEl.querySelectorAll('.build-cat').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+    };
+    catsEl.appendChild(el);
+  });
+  const items = [
+    { icon: '😊', label: '기본' }, { icon: '😎', label: '쿨' },
+    { icon: '🥰', label: '귀여움' }, { icon: '😤', label: '강인함' },
+    { icon: '💇', label: '숏컷' }, { icon: '💇‍♀️', label: '롱헤어' },
+    { icon: '👕', label: '티셔츠' }, { icon: '🧥', label: '코트' },
+    { icon: '👖', label: '청바지' }, { icon: '👟', label: '운동화' },
+    { icon: '🕶️', label: '선글라스' }, { icon: '🎩', label: '모자' },
+  ];
+  const gridEl = document.getElementById('cc-grid');
+  items.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'charcustom-item';
+    el.innerHTML = `<span class="cc-icon">${item.icon}</span><span>${item.label}</span>`;
+    el.onclick = () => showToast(`${item.label} 선택`);
+    gridEl.appendChild(el);
+  });
+}
+
+// Speed buttons
+document.querySelectorAll('.speed-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    showToast(`속도: x${btn.dataset.speed}`);
+  };
+});
+
+// Toolbar & shortcut button bindings
+document.getElementById('tb-menu').onclick = () => togglePanel('menu');
+document.getElementById('sc-build').onclick = () => togglePanel('build');
+
+// HUD time update (cosmetic)
+function updateHudTime() {
+  const d = new Date();
+  const h = d.getHours(), m = d.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  const timeStr = `${h12}:${String(m).padStart(2,'0')} ${ampm}`;
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  document.getElementById('hud-time').textContent = timeStr;
+  document.getElementById('hud-day').textContent = days[d.getDay()];
+  document.querySelector('.phone-time').textContent = timeStr;
+  document.querySelector('.phone-day').textContent = days[d.getDay()];
+  document.getElementById('phone-statustime').textContent = `${ampm} ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+updateHudTime();
+setInterval(updateHudTime, 10000);
+
+// ─── Gamepad (Controller) Support ───
+let gamepadConnected = false;
+const gpPrevButtons = {};
+
+window.addEventListener('gamepadconnected', (e) => {
+  gamepadConnected = true;
+  showToast(`컨트롤러 연결: ${e.gamepad.id}`);
+});
+window.addEventListener('gamepaddisconnected', () => {
+  gamepadConnected = false;
+  showToast('컨트롤러 연결 해제');
+});
+
+function pollGamepad(dt) {
+  const gamepads = navigator.getGamepads();
+  const gp = gamepads[0];
+  if (!gp) return;
+
+  // Detect any button/stick input to switch device
+  const anyButton = gp.buttons.some(b => b.pressed);
+  const anyAxis = gp.axes.some(a => Math.abs(a) > 0.2);
+  if (anyButton || anyAxis) setInputDevice('controller');
+
+  // Standard mapping: https://w3c.github.io/gamepad/#remapping
+  const deadzone = 0.15;
+  const lx = Math.abs(gp.axes[0]) > deadzone ? gp.axes[0] : 0; // Left stick X
+  const ly = Math.abs(gp.axes[1]) > deadzone ? gp.axes[1] : 0; // Left stick Y
+  const rx = Math.abs(gp.axes[2]) > deadzone ? gp.axes[2] : 0; // Right stick X
+  const ry = Math.abs(gp.axes[3]) > deadzone ? gp.axes[3] : 0; // Right stick Y
+
+  // Left stick → movement (simulates WASD)
+  if (!state.interactionMenuOpen && !state.radialOpen && !state.customizeOpen && !isAnyPanelOpen() && !activePanels.menu) {
+    state.keys['KeyW'] = ly < -deadzone;
+    state.keys['KeyS'] = ly > deadzone;
+    state.keys['KeyA'] = lx < -deadzone;
+    state.keys['KeyD'] = lx > deadzone;
+  }
+
+  // Right stick → camera rotation
+  if (!state.interactionMenuOpen) {
+    if (Math.abs(rx) > deadzone) camYaw -= rx * 2.5 * dt;
+    if (Math.abs(ry) > deadzone) camPitch = THREE.MathUtils.clamp(camPitch - ry * 2.5 * dt, -1.2, 0.8);
+  }
+
+  // Button press detection (edge-triggered)
+  function btnPressed(idx) {
+    const cur = gp.buttons[idx]?.pressed;
+    const prev = gpPrevButtons[idx] || false;
+    gpPrevButtons[idx] = cur;
+    return cur && !prev;
+  }
+
+  // A (0) = F / Enter / select
+  if (btnPressed(0)) {
+    if (state.interactionMenuOpen) {
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyF' }));
+    } else if (state.radialOpen) {
+      if (radialFocusIndex >= 0) executeRadialAction(radialFocusIndex);
+    } else if (state.nearObject) {
+      openObjectMenu(state.nearObject, 'keyboard');
+    }
+  }
+  // B (1) = Q / back / cancel
+  if (btnPressed(1)) {
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ' }));
+  }
+  // X (2) = G / NPC interact
+  if (btnPressed(2)) {
+    if (state.nearNPC && !state.interactionMenuOpen) {
+      openNPCMenu(state.nearNPC, 'keyboard');
+    }
+  }
+  // Y (3) = C / self-interact
+  if (btnPressed(3)) {
+    if (!state.interactionMenuOpen) openSelfMenu('keyboard');
+  }
+  // LB (4) = radial menu
+  if (btnPressed(4)) {
+    if (!state.radialOpen) openRadialMenu('controller');
+    else closeRadialMenu();
+  }
+  // RB (5) = V / cycle target
+  if (btnPressed(5)) cycleTarget();
+  // Start (9) = ESC / game menu
+  if (btnPressed(9)) {
+    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));
+  }
+  // D-pad: Up(12), Down(13), Left(14), Right(15)
+  if (btnPressed(12)) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp' }));
+  if (btnPressed(13)) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown' }));
+
+  // L3 (10) = focus search in customize
+  if (btnPressed(10) && state.customizeOpen) {
+    document.getElementById('customize-search').focus();
+  }
+
+  // Update prev state for remaining buttons
+  for (let i = 0; i < gp.buttons.length; i++) {
+    if (!(i in gpPrevButtons)) gpPrevButtons[i] = gp.buttons[i]?.pressed || false;
+    else gpPrevButtons[i] = gp.buttons[i]?.pressed || false;
+  }
+}
+
+// ─── Game Loop ───
+let lastTime = performance.now();
+function gameLoop() {
+  const now = performance.now();
+  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime = now;
+
+  pollGamepad(dt);
+  updatePlayer(dt);
+  updateCamera(dt);
+  updateTargeting();
+  updateDebugVisuals();
+  animateNPCs(dt);
+  updateNPCAlerts();
+
+  water.material.opacity = 0.5 + Math.sin(now * 0.002) * 0.1;
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+showToast('WASD로 이동, 방향키/우클릭 드래그로 카메라 회전!');
+</script>
+</body>
+</html>
