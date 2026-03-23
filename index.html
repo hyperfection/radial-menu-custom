@@ -589,13 +589,7 @@ canvas { display: block; cursor: default; }
   outline-offset: -2px;
   position: relative;
 }
-#interact-depth2 .menu-item.focused::before {
-  content: attr(data-key);
-  position: absolute; left: -38px; top: 50%; transform: translateY(-50%);
-  background: rgba(0,0,0,0.7); border: 1.5px solid rgba(255,255,255,0.5);
-  border-radius: 5px; padding: 2px 7px; font-size: 11px; font-weight: bold;
-  color: #fff; white-space: nowrap;
-}
+/* depth2 uses shared .focus-key-indicator */
 #interact-depth2 .menu-item:active {
   transform: scale(0.98);
 }
@@ -665,12 +659,18 @@ canvas { display: block; cursor: default; }
   outline-offset: -2px;
   position: relative;
 }
-#interaction-menu .menu-item.focused::before {
-  content: attr(data-key);
+/* Key indicator now uses .focus-key-indicator DOM element */
+.focus-key-indicator {
   position: absolute; left: -38px; top: 50%; transform: translateY(-50%);
   background: rgba(0,0,0,0.7); border: 1.5px solid rgba(255,255,255,0.5);
   border-radius: 5px; padding: 2px 7px; font-size: 11px; font-weight: bold;
   color: #fff; white-space: nowrap;
+  display: flex; align-items: center; justify-content: center;
+}
+/* Inside customize list: position inside item (overflow clips outside) */
+#customize-action-list .focus-key-indicator {
+  left: 4px; top: 50%; transform: translateY(-50%);
+  z-index: 2;
 }
 #interaction-menu .menu-item:active {
   transform: scale(0.98);
@@ -785,12 +785,69 @@ canvas { display: block; cursor: default; }
 
 /* Hint bar */
 #radial-hint {
-  position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 16px; right: 16px;
   color: rgba(255,255,255,0.45); font-size: 12px;
   background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: 12px;
   backdrop-filter: blur(4px);
   display: flex; align-items: center; gap: 6px;
 }
+#radial-customize-btn {
+  position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
+  z-index: 201;
+}
+#radial-customize-btn .tab-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #fff; color: #222; font-size: 10px; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px; margin-right: 6px;
+  line-height: 1;
+}
+
+/* ─── Customize mode: center buttons ─── */
+#customize-center-actions {
+  position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
+  display: none; gap: 12px; z-index: 310;
+}
+#customize-step-guide {
+  position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,0.5); font-size: 13px;
+  background: rgba(0,0,0,0.4); padding: 6px 18px; border-radius: 10px;
+  backdrop-filter: blur(4px); z-index: 310;
+  display: none; white-space: nowrap;
+}
+#customize-center-actions button {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 20px 10px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; border: 1px solid rgba(255,255,255,0.15);
+  backdrop-filter: blur(4px);
+}
+#customize-center-actions .btn-reset {
+  background: rgba(255,255,255,0.08); color: #aaa;
+}
+#customize-center-actions .btn-reset:hover {
+  background: rgba(255,80,80,0.15); color: #ff8888; border-color: rgba(255,80,80,0.3);
+}
+#customize-center-actions .btn-complete {
+  background: rgba(100,180,220,0.25); color: #fff; border-color: rgba(100,200,240,0.5);
+}
+#customize-center-actions .btn-complete:hover {
+  background: rgba(100,180,220,0.4); border-color: rgba(100,200,240,0.7);
+}
+#customize-center-actions .btn-key {
+  display: inline-block; background: #fff; color: #222;
+  font-size: 9px; font-weight: 700; padding: 1px 6px;
+  border-radius: 3px; margin-left: 8px;
+}
+.lp-bar {
+  display: none; width: 100%; height: 3px; border-radius: 2px;
+  background: rgba(255,255,255,0.1); margin-top: 6px; overflow: hidden;
+}
+.lp-bar .lp-fill {
+  height: 100%; width: 0%; border-radius: 2px;
+  transition: width 0.05s linear;
+}
+.btn-reset .lp-fill { background: rgba(255,100,100,0.8); }
+.btn-complete .lp-fill { background: rgba(100,220,240,0.9); }
+
 #radial-hint kbd {
   background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
   border-radius: 4px; padding: 1px 5px; font-size: 11px; font-family: inherit;
@@ -843,6 +900,8 @@ canvas { display: block; cursor: default; }
   flex-direction: column; cursor: pointer; transition: all 0.25s ease;
   background: transparent; border: none;
   color: rgba(255,255,255,0.7); font-size: 22px; text-align: center;
+  pointer-events: auto !important;
+  z-index: 5;
   user-select: none; z-index: 3;
 }
 #customize-radial .radial-slot:hover,
@@ -858,6 +917,19 @@ canvas { display: block; cursor: default; }
 }
 #customize-radial .radial-slot.empty {
   opacity: 0.25;
+}
+#customize-radial .radial-slot.cursor-focused {
+  outline: 2px solid rgba(255,255,255,0.7);
+  outline-offset: 4px;
+  transform: scale(1.2);
+  color: #fff;
+}
+.action-list-item.list-cursor {
+  background: rgba(80,140,255,0.2);
+  outline: 2px solid rgba(100,160,255,0.7);
+  box-shadow: 0 0 12px rgba(80,140,255,0.3), inset 0 0 8px rgba(80,140,255,0.1);
+  color: #fff;
+  padding-left: 32px;
 }
 #customize-radial .radial-slot .slot-icon { font-size: 22px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5)); }
 #customize-radial .radial-slot .slot-num {
@@ -887,8 +959,13 @@ canvas { display: block; cursor: default; }
   width: 320px; max-height: 80vh;
   background: rgba(20,22,35,0.97); border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.1);
+  transition: border-color 0.3s, box-shadow 0.3s;
   display: flex; flex-direction: column;
   overflow: hidden;
+}
+#customize-list-panel.highlight {
+  border-color: rgba(100,180,255,0.5);
+  box-shadow: 0 0 20px rgba(100,180,255,0.15);
 }
 #customize-list-header {
   padding: 16px 18px 0;
@@ -960,6 +1037,11 @@ canvas { display: block; cursor: default; }
 #confirm-box button {
   padding: 9px 28px; border-radius: 10px; font-size: 13px;
   cursor: pointer; transition: all 0.15s; border: 1px solid transparent;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+#confirm-box .btn-key {
+  background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7);
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px;
 }
 #confirm-box .btn-discard {
   background: rgba(255,80,80,0.25); color: #ff9999;
@@ -973,20 +1055,42 @@ canvas { display: block; cursor: default; }
 #confirm-box .btn-cancel:hover { background: rgba(100,140,255,0.35); }
 
 /* Enter long-press progress */
-#longpress-bar {
-  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-  width: 200px; height: 6px; border-radius: 3px;
-  background: rgba(255,255,255,0.1); display: none; z-index: 310;
-  overflow: hidden;
+/* ─── Complete Button with Circular Gauge ─── */
+#customize-complete-btn {
+  position: fixed; bottom: 30px; right: 30px; z-index: 310;
+  display: none;
 }
-#longpress-fill {
-  height: 100%; width: 0%; border-radius: 3px;
-  background: linear-gradient(90deg, rgba(80,180,80,0.8), rgba(100,220,100,0.9));
-  transition: width 0.05s linear;
+#customize-complete-btn .complete-inner {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  background: rgba(100,180,220,0.25); border: 1.5px solid rgba(100,200,240,0.5);
+  color: #fff; padding: 10px 20px 10px 14px; border-radius: 12px;
+  cursor: pointer; font-size: 14px; font-weight: 600;
+  backdrop-filter: blur(6px); transition: all 0.15s;
+  user-select: none;
 }
-#longpress-label {
-  position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%);
-  color: #aaa; font-size: 11px; display: none; z-index: 310;
+#customize-complete-btn .complete-inner:hover {
+  background: rgba(100,180,220,0.4); border-color: rgba(100,200,240,0.7);
+}
+#customize-complete-btn .complete-inner:active {
+  transform: scale(0.97);
+}
+.longpress-ring {
+  position: relative; width: 32px; height: 32px;
+}
+.longpress-ring svg {
+  transform: rotate(-90deg); width: 32px; height: 32px;
+}
+.longpress-ring .ring-bg {
+  fill: none; stroke: rgba(255,255,255,0.15); stroke-width: 3;
+}
+.longpress-ring .ring-fill {
+  fill: none; stroke: rgba(100,210,240,0.9); stroke-width: 3;
+  stroke-linecap: round; transition: stroke-dashoffset 0.05s linear;
+}
+#longpress-ring-reset .ring-fill { stroke: rgba(255,120,120,0.9); }
+.longpress-ring .ring-key {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 9px; font-weight: bold; color: rgba(255,255,255,0.7);
 }
 .action-list-item {
   display: flex; align-items: center; gap: 10px;
@@ -1010,10 +1114,10 @@ canvas { display: block; cursor: default; }
 
 /* Customize hint bar */
 #customize-hint {
-  position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
-  color: #bbb; font-size: 13px; background: rgba(0,0,0,0.6);
-  padding: 8px 20px; border-radius: 12px; z-index: 310;
-  display: none;
+  position: fixed; bottom: 16px; right: 16px;
+  color: rgba(255,255,255,0.45); font-size: 12px; background: rgba(0,0,0,0.5);
+  padding: 6px 12px; border-radius: 12px; z-index: 310;
+  display: none; backdrop-filter: blur(4px);
 }
 #customize-hint kbd {
   background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
@@ -1158,9 +1262,9 @@ canvas { display: block; cursor: default; }
     <kbd>WASD</kbd> 이동<br>
     <kbd>↑↓←→</kbd> 카메라<br>
     <kbd>F</kbd> 사물 상호작용<br>
-    <kbd>G</kbd> NPC 상호작용<br>
+    <kbd>E</kbd> NPC 상호작용<br>
     <kbd>V</kbd> 타겟 전환<br>
-    <kbd>'</kbd> 래디얼 메뉴<br>
+    <kbd>Ctrl</kbd>/<kbd>X</kbd> 래디얼 메뉴<br>
     <kbd>C</kbd> 셀프 상호작용<br>
     <kbd>U</kbd> HUD 숨기기<br>
     <kbd>ESC</kbd> 메뉴
@@ -1312,15 +1416,22 @@ canvas { display: block; cursor: default; }
       <div id="radial-center-hint"></div>
     </div>
   </div>
-  <div id="radial-hint">
-    <kbd>Tab</kbd> 커스텀 &nbsp;|&nbsp; <kbd>ESC</kbd> / 우클릭 닫기
-  </div>
+  <div id="radial-hint"></div>
+  <div id="radial-customize-btn"></div>
 </div>
 
 <div id="customize-panel">
+  <div style="position:fixed;top:16px;left:16px;display:flex;align-items:center;gap:10px;z-index:310;">
+    <button onclick="tryCloseCustomize()" style="
+      background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);
+      color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;
+      backdrop-filter:blur(4px);
+    ">← 뒤로가기</button>
+    <span style="color:rgba(255,255,255,0.6);font-size:14px;font-weight:600;">원형 메뉴 편집</span>
+  </div>
   <div id="customize-radial">
     <div class="customize-ring-outer"></div>
-    <div class="radial-sector" id="customize-sector"></div>
+    <div class="radial-sector" id="customize-sector" style="pointer-events:none;"></div>
     <div class="customize-ring-inner"></div>
     <div id="customize-radial-center">
       <div class="cust-title">커스텀 모드</div>
@@ -1330,39 +1441,61 @@ canvas { display: block; cursor: default; }
   <div id="customize-list-panel">
     <div id="customize-list-header">
       <h3>액션 리스트</h3>
-      <input class="search-input" placeholder="🔍 검색..." id="customize-search">
+      <div style="position:relative;">
+        <input class="search-input" placeholder="🔍 검색..." id="customize-search" style="padding-right:40px;">
+        <span id="search-key-badge" onclick="document.getElementById('customize-search').focus()" style="
+          position:absolute; right:8px; top:50%; transform:translateY(-50%);
+          background:#fff; color:#222; font-size:9px; font-weight:700;
+          padding:2px 6px; border-radius:3px; cursor:pointer;
+        ">F3</span>
+      </div>
     </div>
     <div class="category-bar" id="customize-cat-bar"></div>
     <div id="customize-action-list"></div>
   </div>
-  <div id="customize-reset-wrap" style="position:absolute;bottom:30px;left:50%;transform:translateX(-50%);z-index:310;">
-    <button id="btn-reset" style="
-      background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
-      color:#aaa;padding:8px 24px;border-radius:20px;cursor:pointer;font-size:12px;
-      backdrop-filter:blur(4px);transition:all 0.15s;
-    ">🔄 초기화</button>
+  <div id="customize-step-guide"></div>
+  <div id="customize-center-actions">
+    <button class="btn-reset" id="btn-reset"
+      onclick="doResetSlots()">
+      <div class="longpress-ring" id="longpress-ring-reset">
+        <svg viewBox="0 0 32 32">
+          <circle class="ring-bg" cx="16" cy="16" r="13"/>
+          <circle class="ring-fill" cx="16" cy="16" r="13" stroke-dasharray="81.68" stroke-dashoffset="81.68"/>
+        </svg>
+        <span class="ring-key" id="reset-key-label">E</span>
+      </div>
+      초기화
+    </button>
+    <button class="btn-complete"
+      onclick="closeCustomizePanel();showToast('커스텀 저장 완료!');playSound('execute')">
+      <div class="longpress-ring" id="longpress-ring-complete">
+        <svg viewBox="0 0 32 32">
+          <circle class="ring-bg" cx="16" cy="16" r="13"/>
+          <circle class="ring-fill" cx="16" cy="16" r="13" stroke-dasharray="81.68" stroke-dashoffset="81.68"/>
+        </svg>
+        <span class="ring-key" id="complete-key-label">Enter</span>
+      </div>
+      완료
+    </button>
   </div>
-  <div id="customize-hint">
-    슬롯 클릭 → 리스트 클릭으로 배정 &nbsp;|&nbsp;
-    <kbd>Del</kbd> 슬롯 비우기 &nbsp;|&nbsp;
-    <kbd>F3</kbd> 검색 &nbsp;|&nbsp;
-    <kbd>Enter</kbd> 길게 눌러 완료 &nbsp;|&nbsp;
-    <kbd>ESC</kbd> 닫기
-  </div>
+  <div id="customize-hint"></div>
 </div>
 
 <div id="customize-confirm">
   <div id="confirm-box">
     <p>변경사항이 저장되지 않았습니다.<br>정말 나가시겠습니까?</p>
     <div class="confirm-buttons">
-      <button class="btn-discard" id="confirm-discard">저장 안 함</button>
-      <button class="btn-cancel" id="confirm-cancel">계속 편집</button>
+      <button class="btn-discard" id="confirm-discard">저장 안 함 <span class="btn-key" id="confirm-discard-key">Enter</span></button>
+      <button class="btn-cancel" id="confirm-cancel">계속 편집 <span class="btn-key" id="confirm-cancel-key">Esc</span></button>
     </div>
   </div>
 </div>
 
-<div id="longpress-bar"><div id="longpress-fill"></div></div>
-<div id="longpress-label">Enter 길게 눌러 완료</div>
+<!-- longpress ring for Enter key (hidden, used by JS) -->
+<svg id="longpress-ring-svg" style="display:none" viewBox="0 0 32 32">
+  <circle class="ring-fill" id="longpress-ring-fill" cx="16" cy="16" r="13"
+    stroke-dasharray="81.68" stroke-dashoffset="81.68"/>
+</svg>
 
 <div id="submenu-panel">
   <h3 id="submenu-title"></h3>
@@ -1392,7 +1525,7 @@ canvas { display: block; cursor: default; }
   <table>
     <tr><th>큐</th><th>키</th><th>동작</th></tr>
     <tr><td>사물</td><td><kbd>F</kbd></td><td>FOV 내 스택. <kbd>V</kbd>로 전환</td></tr>
-    <tr><td>NPC</td><td><kbd>G</kbd></td><td>가장 가까이+가운데 1명. 전환 불가</td></tr>
+    <tr><td>NPC</td><td><kbd>E</kbd></td><td>가장 가까이+가운데 1명. 전환 불가</td></tr>
   </table>
   <h3>타겟 리스트 (화면 우측)</h3>
   <p>사물만 표시. Primary에 <kbd>V</kbd> 인디케이터 + <kbd>F</kbd> 키. 1개면 V 숨김.</p>
@@ -1402,7 +1535,7 @@ canvas { display: block; cursor: default; }
   <table>
     <tr><th>입력</th><th>대상</th></tr>
     <tr><td><kbd>F</kbd></td><td>FOV primary 사물</td></tr>
-    <tr><td><kbd>G</kbd></td><td>FOV primary NPC</td></tr>
+    <tr><td><kbd>E</kbd></td><td>FOV primary NPC</td></tr>
     <tr><td><kbd>C</kbd></td><td>셀프 (토글)</td></tr>
     <tr><td>좌클릭</td><td>호버된 대상 (빈곳 클릭 시 닫기)</td></tr>
   </table>
@@ -1537,6 +1670,35 @@ import * as THREE from 'three';
 // ─── Sound System (Web Audio API) ───
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+// ─── Shared SVG Icon Assets ───
+// Mouse body: rounded rect. Divider line at center top.
+// Wheel Click: triangle pointing down at top + rounded pill wheel button
+const SVG_WHEEL_CLICK = `<svg width="16" height="20" viewBox="0 0 16 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="2" width="14" height="17" rx="7" stroke="white" stroke-width="1.5" fill="none"/>
+  <line x1="8" y1="2" x2="8" y2="9" stroke="white" stroke-width="0.8"/>
+  <polygon points="8,0 5.5,2.5 10.5,2.5" fill="white"/>
+  <rect x="6.5" y="4" width="3" height="5" rx="1.5" fill="white"/>
+</svg>`;
+// Wheel Scroll: up/down arrows inside wheel area
+const SVG_WHEEL_SCROLL = `<svg width="16" height="20" viewBox="0 0 16 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="14" height="18" rx="7" stroke="white" stroke-width="1.5" fill="none"/>
+  <line x1="8" y1="1" x2="8" y2="9" stroke="white" stroke-width="0.8"/>
+  <polygon points="8,3 6,5.5 10,5.5" fill="white"/>
+  <polygon points="8,9 6,6.5 10,6.5" fill="white"/>
+</svg>`;
+// Left Click: left half of mouse top filled
+const SVG_LEFT_CLICK = `<svg width="16" height="20" viewBox="0 0 16 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="14" height="18" rx="7" stroke="white" stroke-width="1.5" fill="none"/>
+  <line x1="8" y1="1" x2="8" y2="10" stroke="white" stroke-width="0.8"/>
+  <path d="M1.8 8 Q1.8 1.8 8 1.8 L8 8 Z" fill="white"/>
+</svg>`;
+// Right Click: right half of mouse top filled
+const SVG_RIGHT_CLICK = `<svg width="16" height="20" viewBox="0 0 16 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="14" height="18" rx="7" stroke="white" stroke-width="1.5" fill="none"/>
+  <line x1="8" y1="1" x2="8" y2="10" stroke="white" stroke-width="0.8"/>
+  <path d="M14.2 8 Q14.2 1.8 8 1.8 L8 8 Z" fill="white"/>
+</svg>`;
+
 function playSound(type) {
   // Resume context on first interaction
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -1591,6 +1753,7 @@ function playSound(type) {
 }
 
 // ─── Game State ───
+let gamePaused = false;
 const state = {
   keys: {},
   radialOpen: false,
@@ -1995,8 +2158,8 @@ function animateMotion(dt) {
 const arrowRotateSpeed = 2.0; // radians per second for arrow key rotation
 
 function updateCamera(dt) {
-  // Arrow key camera rotation (blocked during interaction menu & radial menu)
-  if (!state.interactionMenuOpen && !state.radialOpen) {
+  // Arrow key camera rotation (blocked during interaction menu, radial menu & customize)
+  if (!state.interactionMenuOpen && !state.radialOpen && !state.customizeOpen) {
     if (state.keys['ArrowLeft'])  camYaw += arrowRotateSpeed * dt;
     if (state.keys['ArrowRight']) camYaw -= arrowRotateSpeed * dt;
     if (state.keys['ArrowUp'])    camPitch = THREE.MathUtils.clamp(camPitch + arrowRotateSpeed * dt, -1.2, 0.8);
@@ -2181,7 +2344,7 @@ function updateTargeting() {
 
   // ─── Render NPC target (always primary if exists) ───
   if (npcTarget) {
-    renderPrimaryTarget(npcTarget.obj.position, lastInputDevice === 'controller' ? 'X' : 'G', npcTarget.obj.userData.name, 2.4);
+    renderPrimaryTarget(npcTarget.obj.position, lastInputDevice === 'controller' ? 'X' : 'E', npcTarget.obj.userData.name, 2.4);
   }
 
   updateDevOverlay();
@@ -2230,7 +2393,7 @@ function renderTargetList() {
   const isCtrl = lastInputDevice === 'controller';
 
   // Object targets
-  const vKey = isCtrl ? 'RB' : 'V';
+  const vKey = isCtrl ? 'LB' : 'V';
   const fKey = isCtrl ? 'A' : 'F';
   const showV = objectTargets.length > 1;
   objectTargets.forEach((t, i) => {
@@ -2294,6 +2457,19 @@ function setInputDevice(device) {
   if (lastInputDevice === device) return;
   lastInputDevice = device;
   updateControlGuide();
+  // Update active menu hints dynamically
+  if (state.radialOpen) updateRadialHint();
+  if (state.customizeOpen) {
+    const sb = document.getElementById('search-key-badge');
+    const rl = document.getElementById('reset-key-label');
+    const cl = document.getElementById('complete-key-label');
+    if (sb) sb.textContent = device === 'controller' ? 'L3' : 'F3';
+    if (rl) rl.textContent = device === 'controller' ? 'Y' : 'R';
+    if (cl) cl.textContent = device === 'controller' ? 'RT' : 'Space';
+    updateCustomizeHint();
+    renderCustomizeList(); // update Q/E → LB/RB badges
+  }
+  if (state.interactionMenuOpen) updateInteractHint();
 }
 
 function updateControlGuide() {
@@ -2317,9 +2493,9 @@ function updateControlGuide() {
       ${kbd('WASD')} 이동<br>
       ${kbd('↑↓←→')} 카메라<br>
       ${kbd('F')} 사물 상호작용<br>
-      ${kbd('G')} NPC 상호작용<br>
+      ${kbd('E')} NPC 상호작용<br>
       ${kbd('V')} 타겟 전환<br>
-      ${kbd("'")} 래디얼 메뉴<br>
+      ${kbd('Ctrl')}/${kbd('X')} 래디얼 메뉴<br>
       ${kbd('C')} 셀프 상호작용<br>
       ${kbd('U')} HUD 숨기기<br>
       ${kbd('ESC')} 메뉴
@@ -2331,6 +2507,7 @@ function updateControlGuide() {
 let interactFocusIndex = -1;
 let interactMenuItems = [];
 let interactInputMethod = 'keyboard';
+let interactFocusMethod = 'keyboard'; // 'keyboard' | 'mouse-hover' | 'mouse-wheel' | 'controller'
 let interactDepth = 1; // 1 or 2
 let depth1FocusIndex = 0; // remembered focus when entering depth 2
 let currentInteractTarget = null; // obj or npc being interacted with
@@ -2371,12 +2548,12 @@ const ACTION_ICONS = {
 
 function updateInteractHint() {
   const el = document.getElementById('interact-close-hint');
-  const kbd = (t) => `<span style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:4px;padding:1px 7px;font-size:11px;font-weight:bold;">${t}</span>`;
+  const kbd = (t) => `<span style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:4px;padding:1px 7px;font-size:11px;font-weight:bold;display:inline-flex;align-items:center;">${t}</span>`;
   const sep = `<span style="margin-left:8px;opacity:0.4">|</span>`;
   const backLabel = interactDepth === 2 ? '뒤로' : '닫기';
 
-  if (interactInputMethod === 'mouse') {
-    el.innerHTML = `${kbd('우클릭')} <span>${backLabel}</span>`;
+  if (interactInputMethod === 'mouse' || interactFocusMethod === 'mouse-wheel') {
+    el.innerHTML = `${kbd(SVG_RIGHT_CLICK)} <span>${backLabel}</span> ${sep} ${kbd(SVG_WHEEL_SCROLL)} <span>탐색</span>`;
   } else if (lastInputDevice === 'controller') {
     el.innerHTML = `${kbd('B')} <span>${backLabel}</span> ${sep} ${kbd('D-pad')} <span>탐색</span>`;
   } else {
@@ -2394,8 +2571,19 @@ function focusInteractItem(index) {
     return;
   }
   interactFocusIndex = index;
-  const keyLabel = lastInputDevice === 'controller' ? 'A' : 'F';
-  interactMenuItems[index].el.setAttribute('data-key', keyLabel);
+  // Remove old key indicator
+  interactMenuItems.forEach(m => { const k = m.el.querySelector('.focus-key-indicator'); if (k) k.remove(); });
+  // Add key indicator (hidden when mouse hover — user can just click directly)
+  if (interactFocusMethod !== 'mouse-hover') {
+    const ki = document.createElement('span');
+    ki.className = 'focus-key-indicator';
+    if (interactFocusMethod === 'mouse-wheel') {
+      ki.innerHTML = SVG_WHEEL_CLICK;
+    } else {
+      ki.textContent = lastInputDevice === 'controller' ? 'A' : 'F';
+    }
+    interactMenuItems[index].el.appendChild(ki);
+  }
   interactMenuItems[index].el.classList.add('focused');
   playSound('focus');
   interactMenuItems[index].el.scrollIntoView({ block: 'nearest' });
@@ -2416,7 +2604,7 @@ function createMenuItem(label, icon, onclick, disabled = false, submenuKey = nul
   const idx = interactMenuItems.length;
   if (!disabled && onclick) {
     div.onclick = onclick;
-    div.onmouseenter = () => focusInteractItem(idx);
+    div.onmouseenter = () => { interactFocusMethod = 'mouse-hover'; focusInteractItem(idx); };
   }
   interactMenuItems.push({ el: div, onclick, disabled, submenuKey });
   return div;
@@ -2427,12 +2615,20 @@ let depth2MenuItems = [];
 let depth2FocusIndex = -1;
 
 function focusDepth2Item(index) {
-  depth2MenuItems.forEach(m => { m.el.classList.remove('focused'); m.el.removeAttribute('data-key'); });
+  depth2MenuItems.forEach(m => { m.el.classList.remove('focused'); const k = m.el.querySelector('.focus-key-indicator'); if (k) k.remove(); });
   while (index >= 0 && index < depth2MenuItems.length && depth2MenuItems[index].disabled) index++;
   if (index < 0 || index >= depth2MenuItems.length) { depth2FocusIndex = -1; return; }
   depth2FocusIndex = index;
-  const keyLabel = lastInputDevice === 'controller' ? 'A' : 'F';
-  depth2MenuItems[index].el.setAttribute('data-key', keyLabel);
+  if (interactFocusMethod !== 'mouse-hover') {
+    const ki = document.createElement('span');
+    ki.className = 'focus-key-indicator';
+    if (interactFocusMethod === 'mouse-wheel') {
+      ki.innerHTML = SVG_WHEEL_CLICK;
+    } else {
+      ki.textContent = lastInputDevice === 'controller' ? 'A' : 'F';
+    }
+    depth2MenuItems[index].el.appendChild(ki);
+  }
   depth2MenuItems[index].el.classList.add('focused');
   depth2MenuItems[index].el.scrollIntoView({ block: 'nearest' });
   playSound('focus');
@@ -2463,9 +2659,10 @@ function openSubMenu(submenuKey) {
   depth2MenuItems = [];
   depth2FocusIndex = -1;
 
-  // Remove focused from depth-1, apply depth1-selected
+  // Clear all states, then apply depth1-selected to current
   interactMenuItems.forEach(m => {
     m.el.classList.remove('focused');
+    m.el.classList.remove('depth1-selected');
     m.el.removeAttribute('data-key');
   });
   if (depth1FocusIndex >= 0 && interactMenuItems[depth1FocusIndex]) {
@@ -2636,6 +2833,7 @@ function openSelfMenu(method) {
 
 // ─── Radial Menu ───
 let radialFocusIndex = -1;
+let radialFocusMethod = 'none'; // 'hover' | 'wheel' | 'keyboard' | 'none'
 let radialInputMethod = 'keyboard'; // 'keyboard' | 'mouse' | 'controller'
 
 // Action descriptions for center display
@@ -2689,31 +2887,26 @@ function buildRadialMenu() {
       slot.innerHTML = `<span class="slot-icon">${data.icon}</span>`;
     }
 
-    // Key hint: keyboard & mouse mode
+    // Key hint
     if (radialInputMethod === 'keyboard' || radialInputMethod === 'mouse') {
       const hint = document.createElement('span');
       hint.className = 'slot-key-hint';
-      if (radialFocusIndex >= 0) {
-        // Focused: show action key on focused slot only
-        if (i === radialFocusIndex) {
-          if (radialInputMethod === 'mouse') {
-            hint.innerHTML = `<svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="1" y="1" width="12" height="16" rx="6" stroke="white" stroke-width="1.5" fill="none"/>
-              <line x1="7" y1="1" x2="7" y2="7" stroke="white" stroke-width="1"/>
-              <rect x="5.5" y="3" width="3" height="4.5" rx="1.5" fill="white"/>
-            </svg>`;
-            hint.title = '휠클릭';
-          } else {
-            hint.textContent = 'F';
-          }
+      if (radialFocusIndex >= 0 && i === radialFocusIndex) {
+        // Show action hint based on how focus was achieved
+        if (radialFocusMethod === 'hover') {
+          hint.innerHTML = SVG_LEFT_CLICK;
+          hint.title = '좌클릭';
+        } else if (radialFocusMethod === 'wheel') {
+          hint.innerHTML = SVG_WHEEL_CLICK;
+          hint.title = '휠클릭';
         } else {
-          hint.style.display = 'none';
+          hint.textContent = 'F';
         }
+      } else if (radialFocusIndex >= 0) {
+        hint.style.display = 'none';
       } else if (radialInputMethod === 'keyboard') {
-        // Keyboard, no focus: show [1]~[8]
         hint.textContent = i + 1;
       } else {
-        // Mouse, no focus: hide
         hint.style.display = 'none';
       }
       // Position hint at outer edge
@@ -2807,13 +3000,23 @@ function updateRadialSector() {
     path.addEventListener('mouseenter', () => {
       radialFocusIndex = i;
       radialInputMethod = 'mouse';
+      radialFocusMethod = 'hover';
       // Update sector fills
       sectorPaths.forEach((p, j) => {
         p.setAttribute('fill', j === i ? 'rgba(120,200,255,0.2)' : 'transparent');
       });
-      // Update slot highlights
+      // Update slot highlights + hide key hints on hover (user can just click)
       document.querySelectorAll('#radial-menu .radial-slot').forEach((s, j) => {
         s.classList.toggle('focused', j === i);
+        const h = s.querySelector('.slot-key-hint');
+        if (h) {
+          if (j === i) {
+            h.style.display = 'none';
+            h.title = '좌클릭';
+          } else {
+            h.style.display = 'none';
+          }
+        }
       });
       // Update center text
       updateRadialCenter();
@@ -2864,30 +3067,41 @@ function updateRadialSector() {
 }
 
 function updateRadialHint() {
-  const el = document.getElementById('radial-hint');
+  const hint = document.getElementById('radial-hint');
+  const custBtn = document.getElementById('radial-customize-btn');
   const sep = '<span class="radial-hint-sep">|</span>';
 
+  // Key guide (bottom-right)
   if (lastInputDevice === 'controller') {
-    el.innerHTML = `
-      <button class="radial-hint-btn" onclick="if(radialFocusIndex>=0)executeRadialAction(radialFocusIndex)"><kbd>A</kbd> 선택</button>${sep}
-      <button class="radial-hint-btn"><kbd>D-pad</kbd> 탐색</button>${sep}
-      <button class="radial-hint-btn" onclick="closeRadialMenu()"><kbd>B</kbd> 닫기</button>${sep}
-      <button class="radial-hint-btn" onclick="openCustomizePanel()"><kbd>Menu</kbd> 커스텀</button>
+    hint.innerHTML = `
+      <button class="radial-hint-btn"><kbd>A</kbd> 선택</button>${sep}
+      <button class="radial-hint-btn"><kbd>L</kbd> 탐색</button>${sep}
+      <button class="radial-hint-btn" onclick="closeRadialMenu()"><kbd>B</kbd> 닫기</button>
     `;
+    custBtn.innerHTML = `<button class="radial-hint-btn" onclick="openCustomizePanel()" style="
+      background:rgba(0,0,0,0.5);padding:8px 18px;border-radius:12px;backdrop-filter:blur(4px);
+      border:1px solid rgba(255,255,255,0.15);font-size:13px;
+    "><span class="tab-icon">Menu</span>커스텀</button>`;
   } else if (radialInputMethod === 'mouse') {
-    el.innerHTML = `
-      <button class="radial-hint-btn" onclick="if(radialFocusIndex>=0)executeRadialAction(radialFocusIndex)"><kbd>휠클릭</kbd> 선택</button>${sep}
-      <button class="radial-hint-btn"><kbd>휠</kbd> 탐색</button>${sep}
-      <button class="radial-hint-btn" onclick="closeRadialMenu()"><kbd>우클릭</kbd> 닫기</button>${sep}
-      <button class="radial-hint-btn" onclick="openCustomizePanel()"><kbd>Tab</kbd> 커스텀</button>
+    hint.innerHTML = `
+      <button class="radial-hint-btn">${SVG_WHEEL_CLICK} 선택</button>${sep}
+      <button class="radial-hint-btn">${SVG_WHEEL_SCROLL} 탐색</button>${sep}
+      <button class="radial-hint-btn" onclick="closeRadialMenu()">${SVG_RIGHT_CLICK} 닫기</button>
     `;
+    custBtn.innerHTML = `<button class="radial-hint-btn" onclick="openCustomizePanel()" style="
+      background:rgba(0,0,0,0.5);padding:8px 18px;border-radius:12px;backdrop-filter:blur(4px);
+      border:1px solid rgba(255,255,255,0.15);font-size:13px;
+    "><span class="tab-icon">Tab</span>커스텀</button>`;
   } else {
-    el.innerHTML = `
+    hint.innerHTML = `
       <button class="radial-hint-btn"><kbd>1-8</kbd> / <kbd>F</kbd> 선택</button>${sep}
       <button class="radial-hint-btn"><kbd>방향키</kbd> 탐색</button>${sep}
-      <button class="radial-hint-btn" onclick="closeRadialMenu()"><kbd>Q</kbd> 닫기</button>${sep}
-      <button class="radial-hint-btn" onclick="openCustomizePanel()"><kbd>Tab</kbd> 커스텀</button>
+      <button class="radial-hint-btn" onclick="closeRadialMenu()"><kbd>Q</kbd> 닫기</button>
     `;
+    custBtn.innerHTML = `<button class="radial-hint-btn" onclick="openCustomizePanel()" style="
+      background:rgba(0,0,0,0.5);padding:8px 18px;border-radius:12px;backdrop-filter:blur(4px);
+      border:1px solid rgba(255,255,255,0.15);font-size:13px;
+    "><span class="tab-icon">Tab</span>커스텀</button>`;
   }
 }
 
@@ -2913,6 +3127,7 @@ function closeRadialMenu() {
 
 function radialScrollFocus(delta) {
   radialInputMethod = 'mouse';
+  radialFocusMethod = 'wheel';
   if (radialFocusIndex < 0) {
     radialFocusIndex = delta > 0 ? 0 : 7;
   } else {
@@ -3032,6 +3247,10 @@ let customizeSelectedSlot = -1;
 let customizeSelectedAction = null;
 let customizeCategory = 'all';
 let customizeSearch = '';
+let customizeFocusPanel = 'radial'; // 'radial' | 'list'
+let customizeSlotCursor = -1;       // keyboard/controller radial cursor (-1=none, 0-7)
+let customizeListCursor = -1;       // keyboard/controller list cursor
+let customizeListItems = [];        // DOM references for list items
 let customizeSnapshot = []; // snapshot of slots when entering customize mode
 let customizeDirty = false;  // whether changes have been made
 let confirmPending = false;  // whether confirm dialog is showing
@@ -3061,38 +3280,57 @@ function slotsChanged() {
 
 function openCustomizePanel() {
   state.customizeOpen = true;
+  gamePaused = true;
   closeRadialMenu();
   customizeSelectedSlot = -1;
   customizeSelectedAction = null;
   customizeCategory = 'all';
   customizeSearch = '';
+  customizeFocusPanel = 'radial';
+  customizeSlotCursor = 0;
+  customizeListCursor = -1;
+  customizeListItems = [];
   customizeSnapshot = snapshotSlots();
   customizeDirty = false;
   confirmPending = false;
   document.getElementById('customize-panel').style.display = 'block';
   document.getElementById('customize-hint').style.display = 'block';
+  document.getElementById('customize-center-actions').style.display = 'flex';
+  // Set key label based on device
+  document.getElementById('search-key-badge').textContent = lastInputDevice === 'controller' ? 'L3' : 'F3';
+  document.getElementById('reset-key-label').textContent = lastInputDevice === 'controller' ? 'Y' : 'R';
+  document.getElementById('complete-key-label').textContent = lastInputDevice === 'controller' ? 'RT' : 'Space';
   renderCustomizeRadial();
   renderCustomizeList();
   bindCustomizeSearch();
-  bindResetButton();
+  updateCustomizeHint();
+  // Ensure search doesn't have focus on open
+  document.getElementById('customize-search').blur();
+  // Reset button now uses longpress system (onmousedown in HTML)
 }
 
 function closeCustomizePanel() {
   state.customizeOpen = false;
+  gamePaused = false;
   customizeSelectedSlot = -1;
   customizeSelectedAction = null;
   confirmPending = false;
   document.getElementById('customize-panel').style.display = 'none';
   document.getElementById('customize-hint').style.display = 'none';
+  document.getElementById('customize-center-actions').style.display = 'none';
+  document.getElementById('customize-step-guide').style.display = 'none';
   document.getElementById('customize-confirm').style.display = 'none';
   hideLongPress();
 }
 
 function tryCloseCustomize() {
-  // Check if dirty — if so, show confirm dialog
   if (slotsChanged()) {
     confirmPending = true;
     document.getElementById('customize-confirm').style.display = 'block';
+    // Update key labels based on device
+    const isCtrl = lastInputDevice === 'controller';
+    document.getElementById('confirm-discard-key').textContent = isCtrl ? 'A' : 'Enter';
+    document.getElementById('confirm-cancel-key').textContent = isCtrl ? 'B' : 'Esc';
   } else {
     closeCustomizePanel();
   }
@@ -3111,45 +3349,65 @@ document.getElementById('confirm-cancel').onclick = () => {
   document.getElementById('customize-confirm').style.display = 'none';
 };
 
-// Enter long-press to confirm
-let enterPressStart = 0;
-let enterPressTimer = null;
-const LONGPRESS_DURATION = 800; // ms
+// ─── Longpress System (generalized) ───
+const LONGPRESS_DURATION = 800;
+let activeLongpress = null; // { type, startTime, timer, barEl }
 
-function startEnterLongPress() {
-  enterPressStart = performance.now();
-  document.getElementById('longpress-bar').style.display = 'block';
-  document.getElementById('longpress-label').style.display = 'block';
-  document.getElementById('longpress-fill').style.width = '0%';
+const RING_C = 81.68; // 2 * PI * 13
+
+function startLongpress(type) {
+  cancelLongpress();
+  const ringEl = document.getElementById(`longpress-ring-${type}`);
+  const fillCircle = ringEl?.querySelector('.ring-fill');
+  if (fillCircle) fillCircle.style.strokeDashoffset = RING_C;
+
+  activeLongpress = { type, startTime: performance.now(), timer: null, ringEl, fillCircle };
 
   function tick() {
-    const elapsed = performance.now() - enterPressStart;
+    if (!activeLongpress || activeLongpress.type !== type) return;
+    const elapsed = performance.now() - activeLongpress.startTime;
     const pct = Math.min(100, (elapsed / LONGPRESS_DURATION) * 100);
-    document.getElementById('longpress-fill').style.width = pct + '%';
+    if (activeLongpress.fillCircle) {
+      activeLongpress.fillCircle.style.strokeDashoffset = RING_C * (1 - pct / 100);
+    }
 
     if (pct >= 100) {
-      // Long press completed
-      hideLongPress();
-      closeCustomizePanel();
-      showToast('커스텀 저장 완료!');
+      cancelLongpress();
+      if (type === 'complete') {
+        closeCustomizePanel();
+        showToast('커스텀 저장 완료!');
+        playSound('execute');
+      } else if (type === 'reset') {
+        for (let i = 0; i < 8; i++) radialSlots[i] = { ...DEFAULT_SLOTS[i] };
+        customizeDirty = true;
+        customizeSelectedSlot = -1;
+        customizeSelectedAction = null;
+        renderCustomizeRadial();
+        renderCustomizeList();
+        showToast('슬롯이 초기값으로 리셋되었습니다');
+        playSound('execute');
+      }
       return;
     }
-    enterPressTimer = requestAnimationFrame(tick);
+    activeLongpress.timer = requestAnimationFrame(tick);
   }
-  enterPressTimer = requestAnimationFrame(tick);
+  activeLongpress.timer = requestAnimationFrame(tick);
 }
 
-function cancelEnterLongPress() {
-  if (enterPressTimer) cancelAnimationFrame(enterPressTimer);
-  enterPressTimer = null;
-  enterPressStart = 0;
-  hideLongPress();
+function cancelLongpress() {
+  if (activeLongpress) {
+    if (activeLongpress.timer) cancelAnimationFrame(activeLongpress.timer);
+    if (activeLongpress.fillCircle) {
+      activeLongpress.fillCircle.style.strokeDashoffset = RING_C;
+    }
+    activeLongpress = null;
+  }
 }
 
-function hideLongPress() {
-  document.getElementById('longpress-bar').style.display = 'none';
-  document.getElementById('longpress-label').style.display = 'none';
-  document.getElementById('longpress-fill').style.width = '0%';
+// Aliases for backward compat
+function startEnterLongPress() { startLongpress('complete'); }
+function cancelEnterLongPress() { cancelLongpress(); }
+function hideLongPress() { cancelLongpress();
 }
 
 let customizeHoverSlot = -1; // slot being hovered (separate from selected)
@@ -3159,6 +3417,9 @@ function renderCustomizeRadial() {
   container.querySelectorAll('.radial-slot').forEach(s => s.remove());
 
   const actionSelected = customizeSelectedAction !== null;
+  // Highlight list panel when slot is selected (guide user to pick action)
+  const listPanel = document.getElementById('customize-list-panel');
+  listPanel.classList.toggle('highlight', customizeSelectedSlot >= 0 && !actionSelected);
   const cx = 280, cy = 280, radius = 215;
 
   for (let i = 0; i < 8; i++) {
@@ -3169,6 +3430,7 @@ function renderCustomizeRadial() {
     const slot = document.createElement('div');
     slot.className = 'radial-slot';
     if (i === customizeSelectedSlot) slot.classList.add('selected');
+    if (i === customizeSlotCursor && customizeFocusPanel === 'radial') slot.classList.add('cursor-focused');
 
     // When an action is selected in the list, all slots glow as "droppable"
     if (actionSelected) {
@@ -3187,6 +3449,18 @@ function renderCustomizeRadial() {
       slot.innerHTML = `<span class="slot-icon">${actionSelected ? '+' : '○'}</span>`;
     } else {
       slot.innerHTML = `<span class="slot-icon">${data.icon}</span>`;
+    }
+
+    // Key hint on cursor-focused slot (keyboard/controller only, not mouse hover)
+    if (i === customizeSlotCursor && customizeFocusPanel === 'radial' && customizeHoverSlot < 0) {
+      const hint = document.createElement('span');
+      hint.className = 'slot-key-hint';
+      hint.textContent = lastInputDevice === 'controller' ? 'A' : 'F';
+      const hintAngle = (i / 8) * Math.PI * 2 - Math.PI / 2;
+      const hintR = 42;
+      hint.style.left = (22 + Math.cos(hintAngle) * hintR - 8) + 'px';
+      hint.style.top = (22 + Math.sin(hintAngle) * hintR - 8) + 'px';
+      slot.appendChild(hint);
     }
 
     slot.style.left = x + 'px';
@@ -3222,8 +3496,8 @@ function updateCustomizeCenter() {
   const titleEl = centerEl.querySelector('.cust-title');
   const descEl = centerEl.querySelector('.cust-desc');
 
-  // Priority: hover > selected > empty state
-  const displaySlot = customizeHoverSlot >= 0 ? customizeHoverSlot : customizeSelectedSlot;
+  // Priority: hover > cursor > selected
+  const displaySlot = customizeHoverSlot >= 0 ? customizeHoverSlot : (customizeSlotCursor >= 0 ? customizeSlotCursor : customizeSelectedSlot);
 
   if (displaySlot >= 0) {
     const data = radialSlots[displaySlot];
@@ -3236,66 +3510,184 @@ function updateCustomizeCenter() {
     }
   } else {
     titleEl.textContent = '커스텀 모드';
-    descEl.textContent = customizeSelectedAction !== null ? '슬롯을 클릭하여 배정하세요' : '슬롯 또는 액션을 선택하세요';
+    descEl.textContent = '';
+  }
+
+  // Step guide (below radial, above action buttons)
+  const guideEl = document.getElementById('customize-step-guide');
+  if (customizeSelectedSlot >= 0) {
+    guideEl.textContent = '해당 슬롯에 넣을 액션을 선택하세요';
+    guideEl.style.display = 'block';
+  } else {
+    guideEl.textContent = '수정할 슬롯을 선택하세요';
+    guideEl.style.display = 'block';
   }
 }
 
 function updateCustomizeSector() {
   const sectorEl = document.getElementById('customize-sector');
-  // Show sector for hover or selected slot
-  const displaySlot = customizeHoverSlot >= 0 ? customizeHoverSlot : customizeSelectedSlot;
+  sectorEl.innerHTML = '';
+  sectorEl.style.pointerEvents = 'auto';
 
-  if (displaySlot < 0) {
-    // If action selected, highlight all 8 sectors lightly
-    if (customizeSelectedAction !== null) {
-      let svg = `<svg viewBox="0 0 560 560" width="560" height="560">`;
-      for (let i = 0; i < 8; i++) {
-        svg += `<path d="${sectorArcPath(280, 280, 280, 140, i)}" fill="rgba(100,180,255,0.06)" stroke="rgba(100,180,255,0.1)" stroke-width="0.5"/>`;
-      }
-      svg += `</svg>`;
-      sectorEl.innerHTML = svg;
-    } else {
-      sectorEl.innerHTML = '';
-    }
-    return;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const custSectorPaths = [];
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 560 560');
+  svg.style.width = '100%'; svg.style.height = '100%';
+
+  const displaySlot = customizeHoverSlot >= 0 ? customizeHoverSlot : (customizeSlotCursor >= 0 ? customizeSlotCursor : customizeSelectedSlot);
+  const actionSelected = customizeSelectedAction !== null;
+
+  for (let i = 0; i < 8; i++) {
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', sectorArcPath(280, 280, 280, 140, i));
+
+    let fill = 'transparent';
+    if (i === displaySlot && customizeHoverSlot >= 0) fill = 'rgba(100,180,255,0.2)';
+    else if (i === displaySlot) fill = 'rgba(100,140,255,0.18)';
+    else if (actionSelected) fill = 'rgba(100,180,255,0.06)';
+    path.setAttribute('fill', fill);
+
+    path.style.cursor = 'pointer';
+    path.style.pointerEvents = 'all';
+    custSectorPaths.push(path);
+
+    path.addEventListener('mouseenter', () => {
+      customizeHoverSlot = i;
+      updateCustomizeCenter();
+      // Lightweight fill update (no SVG rebuild)
+      custSectorPaths.forEach((p, j) => {
+        p.setAttribute('fill', j === i ? 'rgba(100,180,255,0.2)' : (actionSelected ? 'rgba(100,180,255,0.06)' : 'transparent'));
+      });
+      // Update slot visuals
+      document.querySelectorAll('#customize-radial .radial-slot').forEach((s, j) => {
+        s.classList.toggle('cursor-focused', false);
+      });
+    });
+    path.addEventListener('mouseleave', () => {
+      customizeHoverSlot = -1;
+      updateCustomizeCenter();
+      custSectorPaths.forEach((p, j) => {
+        const isSel = j === customizeSelectedSlot;
+        p.setAttribute('fill', isSel ? 'rgba(100,140,255,0.18)' : (actionSelected ? 'rgba(100,180,255,0.06)' : 'transparent'));
+      });
+    });
+    path.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const newSlot = (customizeSelectedSlot === i) ? -1 : i;
+      // Defer re-render to avoid destroying SVG mid-event
+      setTimeout(() => {
+        customizeSelectedSlot = newSlot;
+        tryAssign();
+        renderCustomizeRadial();
+        renderCustomizeList();
+      }, 0);
+    });
+
+    svg.appendChild(path);
   }
 
-  const isHover = customizeHoverSlot >= 0;
-  const color = isHover ? 'rgba(100,180,255,0.2)' : 'rgba(100,140,255,0.18)';
-  const stroke = isHover ? 'rgba(100,180,255,0.4)' : 'rgba(100,140,255,0.3)';
-  const path = sectorArcPath(280, 280, 280, 140, displaySlot);
-  sectorEl.innerHTML = `<svg viewBox="0 0 560 560" width="560" height="560">
-    <path d="${path}" fill="${color}" stroke="${stroke}" stroke-width="1.5"/>
-  </svg>`;
+  // Divider lines
+  const sliceAngle = Math.PI * 2 / 8;
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 - Math.PI / 2 - sliceAngle / 2;
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('x1', 280 + Math.cos(angle) * 140);
+    line.setAttribute('y1', 280 + Math.sin(angle) * 140);
+    line.setAttribute('x2', 280 + Math.cos(angle) * 280);
+    line.setAttribute('y2', 280 + Math.sin(angle) * 280);
+    line.setAttribute('stroke', 'rgba(255,255,255,0.07)');
+    line.setAttribute('stroke-width', '1');
+    line.style.pointerEvents = 'none';
+    svg.appendChild(line);
+  }
+
+  sectorEl.appendChild(svg);
+}
+
+function updateCustomizeHint() {
+  const el = document.getElementById('customize-hint');
+  if (!el) return;
+  const c = lastInputDevice === 'controller';
+  const parts = [];
+
+  if (customizeFocusPanel === 'list') {
+    // List focused: navigate + category + select
+    parts.push(c ? '<kbd>D-pad</kbd> 탐색' : '<kbd>↑↓</kbd> 탐색');
+    parts.push(c ? '<kbd>LB</kbd><kbd>RB</kbd> 카테고리' : '<kbd>Q</kbd><kbd>E</kbd> 카테고리');
+    parts.push(c ? '<kbd>A</kbd> 선택' : '<kbd>F</kbd> 선택');
+  } else if (customizeFocusPanel === 'radial') {
+    // Radial focused: navigate + select + clear
+    parts.push(c ? '<kbd>L</kbd> 탐색' : '<kbd>방향키</kbd> 탐색');
+    parts.push(c ? '<kbd>A</kbd> 배정' : '<kbd>F</kbd> 배정');
+    if (customizeSlotCursor >= 0 && radialSlots[customizeSlotCursor]?.actionId) {
+      parts.push(c ? '<kbd>X</kbd> 비우기' : '<kbd>Del</kbd> 비우기');
+    }
+  }
+
+  // Always show close
+  parts.push(c ? '<kbd>B</kbd> 닫기' : '<kbd>ESC</kbd> 닫기');
+
+  el.innerHTML = parts.join(' &nbsp;|&nbsp; ');
+}
+
+function cycleCustomizeCategory(dir) {
+  const idx = CATEGORIES.findIndex(c => c.id === customizeCategory);
+  const next = ((idx + dir) % CATEGORIES.length + CATEGORIES.length) % CATEGORIES.length;
+  customizeCategory = CATEGORIES[next].id;
+  customizeListCursor = 0;
+  renderCustomizeList();
+  playSound('focus');
 }
 
 function renderCustomizeList() {
   const catBar = document.getElementById('customize-cat-bar');
   catBar.innerHTML = '';
+  const isCtrl = lastInputDevice === 'controller';
+  // Left key badge
+  const leftKey = document.createElement('span');
+  leftKey.style.cssText = 'background:#fff;color:#222;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;cursor:pointer;align-self:center;';
+  leftKey.textContent = isCtrl ? 'LB' : 'Q';
+  leftKey.onclick = () => cycleCustomizeCategory(-1);
+  catBar.appendChild(leftKey);
+
   CATEGORIES.forEach(cat => {
     const chip = document.createElement('div');
     chip.className = 'category-chip' + (customizeCategory === cat.id ? ' active' : '');
     chip.innerHTML = `${cat.icon} ${cat.label}`;
-    chip.onclick = () => { customizeCategory = cat.id; renderCustomizeList(); };
+    chip.onclick = () => { customizeFocusPanel = 'list'; customizeCategory = cat.id; customizeListCursor = 0; renderCustomizeList(); };
     catBar.appendChild(chip);
   });
 
+  // Right key badge
+  const rightKey = document.createElement('span');
+  rightKey.style.cssText = 'background:#fff;color:#222;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;cursor:pointer;align-self:center;';
+  rightKey.textContent = isCtrl ? 'RB' : 'E';
+  rightKey.onclick = () => cycleCustomizeCategory(1);
+  catBar.appendChild(rightKey);
+
   const listEl = document.getElementById('customize-action-list');
   listEl.innerHTML = '';
+  customizeListItems = [];
 
   // "없음" item
   const noneItem = document.createElement('div');
   noneItem.className = 'action-list-item' + (customizeSelectedAction === '__none__' ? ' selected' : '');
+  if (customizeListCursor === 0 && customizeFocusPanel === 'list') noneItem.classList.add('list-cursor');
   noneItem.innerHTML = `
     <span class="action-icon" style="opacity:0.4">🚫</span>
     <span class="action-label">없음 (슬롯 비우기)</span>
   `;
   noneItem.onclick = () => {
+    customizeFocusPanel = 'list';
     customizeSelectedAction = (customizeSelectedAction === '__none__') ? null : '__none__';
     tryAssign();
     renderCustomizeList();
     renderCustomizeRadial();
   };
+  noneItem.onmouseenter = () => focusCustomizeList(0, true);
+  customizeListItems.push({ el: noneItem, actionId: '__none__' });
   listEl.appendChild(noneItem);
 
   let filtered = ALL_ACTIONS;
@@ -3304,22 +3696,112 @@ function renderCustomizeList() {
 
   const catLabelMap = { hud: 'HUD', emote: '이모트', motion: '모션', clothing: '옷', self: '셀프' };
 
-  filtered.forEach(action => {
+  filtered.forEach((action, idx) => {
     const item = document.createElement('div');
     item.className = 'action-list-item' + (customizeSelectedAction === action.id ? ' selected' : '');
+    const listIdx = idx + 1; // +1 because "없음" is index 0
+    if (customizeListCursor === listIdx && customizeFocusPanel === 'list') item.classList.add('list-cursor');
     item.innerHTML = `
       <span class="action-icon">${action.icon}</span>
       <span class="action-label">${action.label}</span>
       <span class="action-cat">${catLabelMap[action.category] || action.category}</span>
     `;
     item.onclick = () => {
+      customizeFocusPanel = 'list';
       customizeSelectedAction = (customizeSelectedAction === action.id) ? null : action.id;
       tryAssign();
       renderCustomizeList();
       renderCustomizeRadial();
     };
+    item.onmouseenter = () => focusCustomizeList(listIdx, true);
+    customizeListItems.push({ el: item, actionId: action.id });
     listEl.appendChild(item);
   });
+
+  // Scroll focused item into view
+  if (customizeListCursor >= 0 && customizeListCursor < customizeListItems.length && customizeFocusPanel === 'list') {
+    customizeListItems[customizeListCursor].el.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function focusCustomizeList(index, fromHover) {
+  if (customizeListItems.length === 0) return;
+  customizeListCursor = ((index % customizeListItems.length) + customizeListItems.length) % customizeListItems.length;
+  customizeFocusPanel = 'list';
+  // Update visuals + key indicator
+  customizeListItems.forEach((item, i) => {
+    item.el.classList.toggle('list-cursor', i === customizeListCursor);
+    const old = item.el.querySelector('.focus-key-indicator');
+    if (old) old.remove();
+  });
+  // Add key indicator (hidden on mouse hover — user can just click)
+  if (!fromHover) {
+    const ki = document.createElement('span');
+    ki.className = 'focus-key-indicator';
+    ki.textContent = lastInputDevice === 'controller' ? 'A' : 'F';
+    customizeListItems[customizeListCursor].el.style.position = 'relative';
+    customizeListItems[customizeListCursor].el.appendChild(ki);
+  }
+  customizeListItems[customizeListCursor].el.scrollIntoView({ block: 'nearest' });
+  playSound('focus');
+  updateCustomizeHint();
+  // Also clear radial slot key hints
+  renderCustomizeRadial();
+}
+
+function selectCustomizeListItem() {
+  if (customizeListCursor < 0 || customizeListCursor >= customizeListItems.length) return;
+  // Keyboard/controller: slot must be selected first
+  if (customizeSelectedSlot < 0 && lastInputDevice !== 'mouse') {
+    playSound('error');
+    return;
+  }
+  const item = customizeListItems[customizeListCursor];
+  customizeSelectedAction = (customizeSelectedAction === item.actionId) ? null : item.actionId;
+  playSound('execute');
+  tryAssign();
+  renderCustomizeList();
+  renderCustomizeRadial();
+}
+
+function focusCustomizeSlot(index) {
+  customizeSlotCursor = ((index % 8) + 8) % 8;
+  customizeFocusPanel = 'radial';
+  customizeListCursor = -1;
+  // Re-render radial to update cursor + key hint
+  renderCustomizeRadial();
+  // Clear list cursor visuals + key indicators
+  customizeListItems.forEach(item => {
+    item.el.classList.remove('list-cursor');
+    const old = item.el.querySelector('.focus-key-indicator');
+    if (old) old.remove();
+  });
+  playSound('focus');
+  updateCustomizeHint();
+}
+
+function selectCustomizeSlot() {
+  if (customizeSlotCursor < 0) return;
+  if (customizeSelectedSlot === customizeSlotCursor) {
+    // Deselect
+    customizeSelectedSlot = -1;
+    playSound('close');
+  } else {
+    // Select slot → move focus to list
+    customizeSelectedSlot = customizeSlotCursor;
+    playSound('execute');
+    tryAssign();
+    if (customizeSelectedSlot >= 0) {
+      // Slot selected, switch to list for action picking
+      customizeFocusPanel = 'list';
+      customizeListCursor = 0;
+    }
+  }
+  renderCustomizeRadial();
+  renderCustomizeList();
+  if (customizeFocusPanel === 'list' && customizeListCursor >= 0) {
+    focusCustomizeList(customizeListCursor);
+  }
 }
 
 function tryAssign() {
@@ -3338,6 +3820,11 @@ function tryAssign() {
   showToast(`슬롯 ${customizeSelectedSlot + 1} 업데이트됨`);
   customizeSelectedSlot = -1;
   customizeSelectedAction = null;
+  // Return focus to radial for next edit (keyboard/controller)
+  if (lastInputDevice !== 'mouse') {
+    customizeFocusPanel = 'radial';
+    customizeListCursor = -1;
+  }
 }
 
 function bindCustomizeSearch() {
@@ -3349,17 +3836,7 @@ function bindCustomizeSearch() {
   };
 }
 
-function bindResetButton() {
-  document.getElementById('btn-reset').onclick = () => {
-    for (let i = 0; i < 8; i++) radialSlots[i] = { ...DEFAULT_SLOTS[i] };
-    customizeDirty = true;
-    customizeSelectedSlot = -1;
-    customizeSelectedAction = null;
-    renderCustomizeRadial();
-    renderCustomizeList();
-    showToast('슬롯이 초기값으로 리셋되었습니다');
-  };
-}
+// bindResetButton removed — reset uses longpress system now
 
 // ─── Toast ───
 function showToast(msg) {
@@ -3421,7 +3898,7 @@ function animateNPCs(dt) {
 // ─── Input: Keyboard ───
 document.addEventListener('keydown', (e) => {
   state.keys[e.code] = true;
-  setInputDevice('keyboard');
+  if (e.isTrusted) setInputDevice('keyboard');
 
   if (e.code === 'Escape') {
     if (confirmPending) {
@@ -3430,7 +3907,23 @@ document.addEventListener('keydown', (e) => {
       document.getElementById('customize-confirm').style.display = 'none';
       return;
     }
-    if (state.customizeOpen) { tryCloseCustomize(); return; }
+    if (state.customizeOpen) {
+      if (customizeSelectedSlot >= 0) {
+        // Cancel slot selection → back to radial
+        customizeSelectedSlot = -1; customizeSelectedAction = null;
+        customizeFocusPanel = 'radial';
+        renderCustomizeRadial(); renderCustomizeList();
+        if (customizeSlotCursor >= 0) focusCustomizeSlot(customizeSlotCursor);
+        playSound('close');
+      } else if (customizeSelectedAction !== null) {
+        customizeSelectedAction = null;
+        renderCustomizeRadial(); renderCustomizeList();
+        playSound('close');
+      } else {
+        tryCloseCustomize();
+      }
+      return;
+    }
     if (state.radialOpen) { closeRadialMenu(); return; }
     if (state.interactionMenuOpen || state.submenuOpen) { closeAllMenus(); return; }
     // Close any open panel, or open game menu
@@ -3449,7 +3942,10 @@ document.addEventListener('keydown', (e) => {
   }
 
   // HUD panel keys (take priority when panels are open)
-  if (activePanels.menu) return; // block all keys in game menu
+  if (activePanels.menu) {
+    if (e.code === 'KeyQ') { togglePanel('menu'); }
+    return;
+  }
 
   // U — toggle HUD visibility
   if (e.code === 'KeyU' && !state.interactionMenuOpen && !state.radialOpen && !state.customizeOpen) {
@@ -3504,39 +4000,136 @@ document.addEventListener('keydown', (e) => {
 
   // Customize mode keys
   if (state.customizeOpen) {
-    if (confirmPending) return;
+    if (confirmPending) {
+      if (e.code === 'Enter' || e.code === 'KeyF') {
+        // Discard and close
+        document.getElementById('confirm-discard').click();
+      } else if (e.code === 'Escape' || e.code === 'KeyQ') {
+        // Cancel, stay editing
+        document.getElementById('confirm-cancel').click();
+      }
+      return;
+    }
+    // Skip if search input is focused (let typing work)
+    const searchEl = document.getElementById('customize-search');
+    const searchFocused = searchEl && document.activeElement === searchEl;
+    // R and Space should work even without explicit focus management
+    if (!searchFocused) {
+      // Handle longpress keys first (before any other checks might return)
+      if (e.code === 'Space' && (!activeLongpress || activeLongpress.type !== 'complete')) {
+        e.preventDefault();
+        startLongpress('complete');
+        return;
+      }
+      if (e.code === 'KeyR' && (!activeLongpress || activeLongpress.type !== 'reset')) {
+        e.preventDefault();
+        startLongpress('reset');
+        return;
+      }
+    }
 
-    // Q — back out of customize
-    if (e.code === 'KeyQ') {
-      tryCloseCustomize();
+    // Q is now category prev (below). ESC handles close.
+
+    // Tab — toggle panel focus
+    if (e.code === 'Tab') {
+      e.preventDefault();
+      if (customizeFocusPanel === 'radial') {
+        customizeFocusPanel = 'list';
+        if (customizeListCursor < 0) customizeListCursor = 0;
+        renderCustomizeList();
+        renderCustomizeRadial();
+      } else {
+        customizeFocusPanel = 'radial';
+        if (customizeSlotCursor < 0) customizeSlotCursor = 0;
+        focusCustomizeSlot(customizeSlotCursor);
+        renderCustomizeList(); // clear list cursor visual
+      }
+      playSound('focus');
       return;
     }
 
-    // Del — clear selected slot
-    if (e.code === 'Delete' && customizeSelectedSlot >= 0) {
-      radialSlots[customizeSelectedSlot] = { actionId: null, label: '비어있음', icon: '' };
-      customizeDirty = true;
-      showToast(`슬롯 ${customizeSelectedSlot + 1} 비워짐`);
-      customizeSelectedSlot = -1;
-      customizeSelectedAction = null;
-      renderCustomizeRadial();
-      renderCustomizeList();
+    // Q/E — cycle category tabs
+    if (!searchFocused && (e.code === 'KeyQ' || e.code === 'KeyE')) {
+      e.preventDefault();
+      cycleCustomizeCategory(e.code === 'KeyQ' ? -1 : 1);
+      return;
     }
+
+    // Arrow keys — step-dependent: step1 = radial, step2 = list
+    if (!searchFocused && (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
+      e.preventDefault();
+      if (customizeSelectedSlot < 0) {
+        // Step 1: navigate radial slots
+        const up = e.code === 'ArrowUp' || state.keys['ArrowUp'];
+        const down = e.code === 'ArrowDown' || state.keys['ArrowDown'];
+        const left = e.code === 'ArrowLeft' || state.keys['ArrowLeft'];
+        const right = e.code === 'ArrowRight' || state.keys['ArrowRight'];
+        let dx = 0, dy = 0;
+        if (up) dy -= 1; if (down) dy += 1;
+        if (left) dx -= 1; if (right) dx += 1;
+        if (dx !== 0 || dy !== 0) {
+          const angle = ((Math.atan2(dx, -dy) / Math.PI * 180) + 360) % 360;
+          const slotIndex = Math.round(angle / 45) % 8;
+          focusCustomizeSlot(slotIndex);
+        }
+      } else {
+        // Step 2: navigate action list
+        if (e.code === 'ArrowUp' || e.code === 'ArrowLeft') {
+          focusCustomizeList(customizeListCursor <= 0 ? customizeListItems.length - 1 : customizeListCursor - 1);
+        } else {
+          focusCustomizeList(customizeListCursor < 0 ? 0 : customizeListCursor + 1);
+        }
+      }
+      return;
+    }
+
+    // Space longpress handled above
+
+    // F / Enter — select
+    if ((e.code === 'KeyF' || e.code === 'Enter') && !searchFocused) {
+      if (e.code === 'KeyF') {
+        e.preventDefault();
+        if (customizeFocusPanel === 'radial' && customizeSlotCursor >= 0) {
+          // Select slot → assign if action already chosen, otherwise just select
+          selectCustomizeSlot();
+        } else if (customizeFocusPanel === 'list' && customizeListCursor >= 0) {
+          // Select action → tryAssign completes (slot already selected)
+          selectCustomizeListItem();
+        }
+        return;
+      }
+    }
+
+    // Del — clear slot at cursor or selected
+    if (e.code === 'Delete' && !searchFocused) {
+      const targetSlot = customizeSlotCursor >= 0 ? customizeSlotCursor : customizeSelectedSlot;
+      if (targetSlot >= 0) {
+        radialSlots[targetSlot] = { actionId: null, label: '비어있음', icon: '' };
+        customizeDirty = true;
+        playSound('execute');
+        showToast(`슬롯 ${targetSlot + 1} 비워짐`);
+        customizeSelectedSlot = -1;
+        customizeSelectedAction = null;
+        renderCustomizeRadial();
+        renderCustomizeList();
+      }
+    }
+    // R longpress handled above
     // F3 — focus search input
     if (e.code === 'F3') {
       e.preventDefault();
       document.getElementById('customize-search').focus();
     }
-    // Enter — start long-press
-    if (e.code === 'Enter' && !enterPressStart) {
-      e.preventDefault();
-      startEnterLongPress();
+    // Escape from search
+    if (e.code === 'Escape' && searchFocused) {
+      document.getElementById('customize-search').blur();
+      return;
     }
     return;
   }
 
   // Radial menu keys — mark as pressed, actual open/close on keyup
-  if (e.code === 'Quote' || e.code === 'BracketLeft' || e.code === 'ControlLeft' || e.code === 'ControlRight' || e.code === 'KeyE' || e.code === 'KeyX') {
+  if (e.code === 'ControlLeft' || e.code === 'ControlRight' || e.code === 'KeyX') {
     if (!radialKeyData) radialKeyData = { code: e.code, combo: false };
     return;
   }
@@ -3567,8 +4160,8 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  // Arrow keys → radial menu directional focus (joystick-like)
-  if (state.radialOpen && (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
+  // Arrow keys → radial menu directional focus (keyboard only, not D-pad)
+  if (state.radialOpen && e.isTrusted && (e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
     e.preventDefault();
     const up = state.keys['ArrowUp'], down = state.keys['ArrowDown'];
     const left = state.keys['ArrowLeft'], right = state.keys['ArrowRight'];
@@ -3585,6 +4178,7 @@ document.addEventListener('keydown', (e) => {
     const slotIndex = Math.round(angle / 45) % 8;
     radialFocusIndex = slotIndex;
     radialInputMethod = 'keyboard';
+    radialFocusMethod = 'keyboard';
     buildRadialMenu();
     playSound('focus');
     return;
@@ -3617,6 +4211,8 @@ document.addEventListener('keydown', (e) => {
       return;
     }
 
+    interactFocusMethod = lastInputDevice === 'controller' ? 'controller' : 'keyboard';
+    updateInteractHint();
     const isUp = e.code === 'ArrowUp' || e.code === 'KeyW';
     const isDown = e.code === 'ArrowDown' || e.code === 'KeyS';
     const isRight = e.code === 'ArrowRight' || e.code === 'KeyD';
@@ -3697,7 +4293,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  if (e.code === 'KeyG' && state.nearNPC && !state.interactionMenuOpen && !state.radialOpen) {
+  if (e.code === 'KeyE' && state.nearNPC && !state.interactionMenuOpen && !state.radialOpen) {
     openNPCMenu(state.nearNPC);
     return;
   }
@@ -3722,9 +4318,17 @@ document.addEventListener('keyup', (e) => {
     return;
   }
 
-  // Cancel Enter long-press on release
-  if (e.code === 'Enter' && state.customizeOpen && enterPressStart) {
-    cancelEnterLongPress();
+  // Enter release in customize: short-press = select, long-press was already handled
+  // Longpress key releases in customize mode
+  if (state.customizeOpen && activeLongpress) {
+    if ((e.code === 'Space' && activeLongpress.type === 'complete') ||
+        (e.code === 'KeyR' && activeLongpress.type === 'reset')) {
+      const elapsed = performance.now() - activeLongpress.startTime;
+      const type = activeLongpress.type;
+      cancelLongpress();
+      // Enter short-press = select
+      // Space short-press = just cancel (no select action)
+    }
   }
 });
 
@@ -3839,6 +4443,10 @@ document.addEventListener('mousemove', (e) => {
   const dx = Math.abs(e.clientX - middleStartX);
   const dy = Math.abs(e.clientY - middleStartY);
   if (dx > 5 || dy > 5) middleDragging = true;
+  // Vertical camera pan while middle-dragging
+  if (middleDragging && !state.radialOpen && !state.interactionMenuOpen && !state.customizeOpen) {
+    camPitch = THREE.MathUtils.clamp(camPitch + (e.movementY || 0) * 0.005, -1.2, 0.8);
+  }
 });
 document.addEventListener('mouseup', (e) => {
   if (e.button !== 1) return;
@@ -3873,6 +4481,8 @@ document.addEventListener('wheel', (e) => {
   if (state.interactionMenuOpen) {
     // Scroll through interaction menu items
     e.preventDefault();
+    interactFocusMethod = 'mouse-wheel';
+    updateInteractHint();
     const dir = e.deltaY > 0 ? 1 : -1;
     if (interactDepth === 2 && depth2MenuItems.length > 0) {
       let next = depth2FocusIndex + dir;
@@ -3910,8 +4520,20 @@ const activePanels = { phone: false, bag: false, build: false, menu: false };
 window.togglePanel = togglePanel;
 window.showToast = showToast;
 window.openCustomizePanel = openCustomizePanel;
+window.tryCloseCustomize = tryCloseCustomize;
+window.startEnterLongPress = startEnterLongPress;
+window.startLongpress = startLongpress;
+window.cancelLongpress = cancelLongpress;
+window.cancelEnterLongPress = cancelEnterLongPress;
 window.executeRadialAction = executeRadialAction;
 window.closeRadialMenu = closeRadialMenu;
+window.closeCustomizePanel = closeCustomizePanel;
+window.doResetSlots = function() {
+  for (let i = 0; i < 8; i++) radialSlots[i] = { ...DEFAULT_SLOTS[i] };
+  customizeDirty = true; customizeSelectedSlot = -1; customizeSelectedAction = null;
+  renderCustomizeRadial(); renderCustomizeList();
+  showToast('슬롯이 초기값으로 리셋되었습니다'); playSound('execute');
+};
 // Expose for inline onclick in hints
 Object.defineProperty(window, 'radialFocusIndex', { get: () => radialFocusIndex });
 
@@ -4166,16 +4788,70 @@ function pollGamepad(dt) {
   const rx = Math.abs(gp.axes[2]) > deadzone ? gp.axes[2] : 0; // Right stick X
   const ry = Math.abs(gp.axes[3]) > deadzone ? gp.axes[3] : 0; // Right stick Y
 
-  // Left stick → movement (simulates WASD)
-  if (!state.interactionMenuOpen && !state.radialOpen && !state.customizeOpen && !isAnyPanelOpen() && !activePanels.menu) {
-    state.keys['KeyW'] = ly < -deadzone;
-    state.keys['KeyS'] = ly > deadzone;
-    state.keys['KeyA'] = lx < -deadzone;
-    state.keys['KeyD'] = lx > deadzone;
+  // L-stick edge-trigger tracking for menus
+  const lStickThreshold = 0.5;
+  const lStickActive = Math.abs(lx) > lStickThreshold || Math.abs(ly) > lStickThreshold;
+  const lStickWasActive = pollGamepad._lStickWasActive || false;
+  const lStickEdge = lStickActive && !lStickWasActive;
+  pollGamepad._lStickWasActive = lStickActive;
+
+  if (state.radialOpen) {
+    // L-stick → radial 8-way focus (continuous — updates when slot changes)
+    if (lStickActive) {
+      const angle = ((Math.atan2(lx, -ly) / Math.PI * 180) + 360) % 360;
+      const slotIndex = Math.round(angle / 45) % 8;
+      if (slotIndex !== radialFocusIndex) {
+        radialFocusIndex = slotIndex;
+        radialInputMethod = 'controller';
+        radialFocusMethod = 'keyboard';
+        buildRadialMenu();
+        playSound('focus');
+      }
+    }
+  } else if (state.interactionMenuOpen) {
+    // L-stick → menu navigation (edge-triggered)
+    if (lStickEdge) {
+      if (Math.abs(ly) > Math.abs(lx)) {
+        document.dispatchEvent(new KeyboardEvent('keydown', { code: ly < 0 ? 'ArrowUp' : 'ArrowDown' }));
+      } else {
+        document.dispatchEvent(new KeyboardEvent('keydown', { code: lx < 0 ? 'ArrowLeft' : 'ArrowRight' }));
+      }
+    }
+  } else if (state.customizeOpen) {
+    if (customizeSelectedSlot < 0) {
+      // Step 1: L-stick navigates radial slots (continuous — updates when slot changes)
+      if (lStickActive) {
+        const angle = ((Math.atan2(lx, -ly) / Math.PI * 180) + 360) % 360;
+        const slotIndex = Math.round(angle / 45) % 8;
+        if (slotIndex !== customizeSlotCursor) {
+          focusCustomizeSlot(slotIndex);
+        }
+      }
+    } else {
+      // Step 2: L-stick navigates action list (edge-triggered for discrete steps)
+      if (lStickEdge && Math.abs(ly) > Math.abs(lx)) {
+        const dir = ly > 0 ? 1 : -1;
+        focusCustomizeList(customizeListCursor < 0 ? 0 : customizeListCursor + dir);
+      }
+    }
+  } else if (!isAnyPanelOpen() && !activePanels.menu) {
+    // L-stick → character movement
+    if (lStickActive) {
+      state.keys['KeyW'] = ly < -deadzone;
+      state.keys['KeyS'] = ly > deadzone;
+      state.keys['KeyA'] = lx < -deadzone;
+      state.keys['KeyD'] = lx > deadzone;
+    } else if (lStickWasActive) {
+      // Stick released → clear movement keys (only if stick was driving them)
+      state.keys['KeyW'] = false;
+      state.keys['KeyS'] = false;
+      state.keys['KeyA'] = false;
+      state.keys['KeyD'] = false;
+    }
   }
 
   // Right stick → camera rotation
-  if (!state.interactionMenuOpen) {
+  if (!state.interactionMenuOpen && !state.radialOpen) {
     if (Math.abs(rx) > deadzone) camYaw -= rx * 2.5 * dt;
     if (Math.abs(ry) > deadzone) camPitch = THREE.MathUtils.clamp(camPitch - ry * 2.5 * dt, -1.2, 0.8);
   }
@@ -4190,7 +4866,17 @@ function pollGamepad(dt) {
 
   // A (0) = F / Enter / select
   if (btnPressed(0)) {
-    if (state.interactionMenuOpen) {
+    if (confirmPending) {
+      document.getElementById('confirm-discard').click();
+      return;
+    }
+    if (state.customizeOpen) {
+      if (customizeFocusPanel === 'radial' && customizeSlotCursor >= 0) {
+        selectCustomizeSlot();
+      } else if (customizeFocusPanel === 'list' && customizeListCursor >= 0) {
+        selectCustomizeListItem();
+      }
+    } else if (state.interactionMenuOpen) {
       document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyF' }));
     } else if (state.radialOpen) {
       if (radialFocusIndex >= 0) executeRadialAction(radialFocusIndex);
@@ -4198,31 +4884,109 @@ function pollGamepad(dt) {
       openObjectMenu(state.nearObject, 'keyboard');
     }
   }
-  // B (1) = Q / back / cancel
+  // B (1) = back / cancel
   if (btnPressed(1)) {
-    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ' }));
+    if (state.customizeOpen) {
+      if (confirmPending) { document.getElementById('confirm-cancel').click(); }
+      else if (customizeSelectedSlot >= 0) {
+        // Cancel slot selection → back to radial
+        customizeSelectedSlot = -1;
+        customizeSelectedAction = null;
+        customizeFocusPanel = 'radial';
+        renderCustomizeRadial();
+        renderCustomizeList();
+        if (customizeSlotCursor >= 0) focusCustomizeSlot(customizeSlotCursor);
+        playSound('close');
+      } else if (customizeSelectedAction !== null) {
+        // Cancel action selection
+        customizeSelectedAction = null;
+        renderCustomizeRadial();
+        renderCustomizeList();
+        playSound('close');
+      } else {
+        tryCloseCustomize();
+      }
+    } else {
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ' }));
+    }
   }
-  // X (2) = G / NPC interact
+  // X (2) = G / NPC interact / clear slot in customize
   if (btnPressed(2)) {
-    if (state.nearNPC && !state.interactionMenuOpen) {
+    if (state.customizeOpen) {
+      const targetSlot = customizeSlotCursor >= 0 ? customizeSlotCursor : customizeSelectedSlot;
+      if (targetSlot >= 0) {
+        radialSlots[targetSlot] = { actionId: null, label: '비어있음', icon: '' };
+        customizeDirty = true; playSound('execute');
+        showToast(`슬롯 ${targetSlot + 1} 비워짐`);
+        customizeSelectedSlot = -1; customizeSelectedAction = null;
+        renderCustomizeRadial(); renderCustomizeList();
+      }
+    } else if (state.nearNPC && !state.interactionMenuOpen) {
       openNPCMenu(state.nearNPC, 'keyboard');
     }
   }
-  // Y (3) = radial menu
-  if (btnPressed(3)) {
+  // Y (3) = radial menu / reset longpress in customize
+  if (state.customizeOpen) {
+    if (gp.buttons[3]?.pressed && (!activeLongpress || activeLongpress.type !== 'reset')) {
+      startLongpress('reset');
+    } else if (!gp.buttons[3]?.pressed && activeLongpress?.type === 'reset') {
+      cancelLongpress();
+    }
+    // RT (7) = complete longpress in customize
+    if (gp.buttons[7]?.value > 0.5 && (!activeLongpress || activeLongpress.type !== 'complete')) {
+      startLongpress('complete');
+    } else if (gp.buttons[7]?.value <= 0.5 && activeLongpress?.type === 'complete') {
+      cancelLongpress();
+    }
+  } else if (btnPressed(3)) {
     if (!state.radialOpen) openRadialMenu('controller');
     else closeRadialMenu();
   }
-  // LB (4) = V / cycle target
-  if (btnPressed(4)) cycleTarget();
-  // RB (5) = unused
-  // Start (9) = ESC / game menu
+  // LB (4) = V / cycle target / category prev in customize
+  if (btnPressed(4)) {
+    if (state.customizeOpen) cycleCustomizeCategory(-1);
+    else cycleTarget();
+  }
+  // RB (5) = category next in customize
+  if (btnPressed(5)) {
+    if (state.customizeOpen) cycleCustomizeCategory(1);
+  }
+  // Start (9) = ESC / game menu — but customize if radial open
   if (btnPressed(9)) {
-    document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));
+    if (state.radialOpen) {
+      openCustomizePanel();
+    } else {
+      document.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' }));
+    }
   }
   // D-pad: Up(12), Down(13), Left(14), Right(15)
-  if (btnPressed(12)) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp' }));
-  if (btnPressed(13)) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown' }));
+  // In customize mode, D-pad step-dependent (same as L-stick)
+  if (state.customizeOpen) {
+    if (customizeSelectedSlot < 0) {
+      // Step 1: D-pad navigates radial slots
+      let ddx = 0, ddy = 0;
+      if (btnPressed(12)) ddy = -1;
+      if (btnPressed(13)) ddy = 1;
+      if (btnPressed(14)) ddx = -1;
+      if (btnPressed(15)) ddx = 1;
+      if (ddx !== 0 || ddy !== 0) {
+        const angle = ((Math.atan2(ddx, -ddy) / Math.PI * 180) + 360) % 360;
+        focusCustomizeSlot(Math.round(angle / 45) % 8);
+      }
+    } else {
+      // Step 2: D-pad navigates action list
+      if (btnPressed(12)) focusCustomizeList(customizeListCursor <= 0 ? customizeListItems.length - 1 : customizeListCursor - 1);
+      if (btnPressed(13)) focusCustomizeList(customizeListCursor < 0 ? 0 : customizeListCursor + 1);
+      if (btnPressed(14)) focusCustomizeList(customizeListCursor <= 0 ? customizeListItems.length - 1 : customizeListCursor - 1);
+      if (btnPressed(15)) focusCustomizeList(customizeListCursor < 0 ? 0 : customizeListCursor + 1);
+    }
+  } else if (!state.radialOpen) {
+    // D-pad dispatches arrow keys (but NOT during radial menu — L-stick handles that)
+    if (btnPressed(12)) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp' }));
+    if (btnPressed(13)) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown' }));
+    if (btnPressed(14)) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowLeft' }));
+    if (btnPressed(15)) document.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowRight' }));
+  }
 
   // L3 (10) = self-interact / search focus in customize
   if (btnPressed(10)) {
@@ -4248,12 +5012,14 @@ function gameLoop() {
   lastTime = now;
 
   pollGamepad(dt);
-  updatePlayer(dt);
+  if (!gamePaused) {
+    updatePlayer(dt);
+    updateTargeting();
+    updateDebugVisuals();
+    animateNPCs(dt);
+    updateNPCAlerts();
+  }
   updateCamera(dt);
-  updateTargeting();
-  updateDebugVisuals();
-  animateNPCs(dt);
-  updateNPCAlerts();
 
   water.material.opacity = 0.5 + Math.sin(now * 0.002) * 0.1;
 
@@ -4262,7 +5028,6 @@ function gameLoop() {
 }
 
 gameLoop();
-showToast('WASD로 이동, 방향키/우클릭 드래그로 카메라 회전!');
 </script>
 </body>
 </html>
